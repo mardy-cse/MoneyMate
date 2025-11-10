@@ -6,6 +6,8 @@ import 'screens/expense_history_screen.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/monthly_summary_screen.dart';
+import 'screens/budget_screen.dart';
+import 'screens/expense_detail_screen.dart';
 import 'services/database_helper.dart';
 import 'controllers/expense_controller.dart';
 
@@ -50,6 +52,7 @@ class MoneyMateApp extends StatelessWidget {
           name: '/monthly-summary',
           page: () => const MonthlySummaryScreen(),
         ),
+        GetPage(name: '/budget', page: () => const BudgetScreen()),
       ],
       // Fallback route
       home: const HomeScreen(),

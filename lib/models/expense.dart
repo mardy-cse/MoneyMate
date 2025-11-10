@@ -5,6 +5,7 @@ class Expense {
   final String category;
   final DateTime date;
   final String? note;
+  final String? voiceNotePath;
 
   Expense({
     this.id,
@@ -13,6 +14,7 @@ class Expense {
     required this.category,
     required this.date,
     this.note,
+    this.voiceNotePath,
   });
 
   // Convert Expense object to Map for SQLite database
@@ -24,6 +26,7 @@ class Expense {
       'category': category,
       'date': date.toIso8601String(),
       'note': note,
+      'voiceNotePath': voiceNotePath,
     };
   }
 
@@ -36,13 +39,14 @@ class Expense {
       category: map['category'] as String,
       date: DateTime.parse(map['date'] as String),
       note: map['note'] as String?,
+      voiceNotePath: map['voiceNotePath'] as String?,
     );
   }
 
   // Optional: Override toString for debugging
   @override
   String toString() {
-    return 'Expense{id: $id, title: $title, amount: $amount, category: $category, date: $date, note: $note}';
+    return 'Expense{id: $id, title: $title, amount: $amount, category: $category, date: $date, note: $note, voiceNotePath: $voiceNotePath}';
   }
 
   // Optional: Create a copy of Expense with updated fields
@@ -53,6 +57,7 @@ class Expense {
     String? category,
     DateTime? date,
     String? note,
+    String? voiceNotePath,
   }) {
     return Expense(
       id: id ?? this.id,
@@ -61,6 +66,7 @@ class Expense {
       category: category ?? this.category,
       date: date ?? this.date,
       note: note ?? this.note,
+      voiceNotePath: voiceNotePath ?? this.voiceNotePath,
     );
   }
 }

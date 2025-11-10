@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../controllers/expense_controller.dart';
+import 'budget_screen.dart';
+import 'expense_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -141,6 +143,15 @@ class HomeScreen extends StatelessWidget {
                 Get.toNamed('/history');
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.account_balance_wallet),
+              title: const Text('Budgets & Goals'),
+              subtitle: const Text('Manage budgets & savings'),
+              onTap: () {
+                Navigator.pop(context);
+                Get.to(() => const BudgetScreen());
+              },
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.settings),
@@ -275,6 +286,12 @@ class HomeScreen extends StatelessWidget {
                               horizontal: 16,
                               vertical: 8,
                             ),
+                            onTap: () {
+                              Get.to(
+                                () => ExpenseDetailScreen(expense: expense),
+                                transition: Transition.rightToLeft,
+                              );
+                            },
                             leading: CircleAvatar(
                               backgroundColor: _getCategoryColor(
                                 expense.category,
@@ -328,18 +345,69 @@ class HomeScreen extends StatelessWidget {
                                 ),
                                 if (expense.note != null &&
                                     expense.note!.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    expense.note!,
-                                    style: TextStyle(
-                                      color: Colors.grey[500],
-                                      fontSize: 12,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.note,
+                                        size: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          expense.note!,
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 12,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
+                                if (expense.voiceNotePath != null) ...[
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.mic,
+                                        size: 14,
+                                        color: Colors.blue[700],
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Voice note attached',
+                                        style: TextStyle(
+                                          color: Colors.blue[700],
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.touch_app,
+                                      size: 12,
+                                      color: Colors.grey[400],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Tap for details',
+                                      style: TextStyle(
+                                        color: Colors.grey[400],
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
                             trailing: Text(
