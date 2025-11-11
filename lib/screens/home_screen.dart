@@ -8,9 +8,14 @@ import '../services/currency_service.dart';
 import 'budget_screen.dart';
 import 'expense_detail_screen.dart';
 
-class HomeScreen extends StatelessWidget {
-  HomeScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   // GlobalKey to access Scaffold state
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -457,147 +462,219 @@ class HomeScreen extends StatelessWidget {
                       itemCount: todayExpenses.length,
                       itemBuilder: (context, index) {
                         final expense = todayExpenses[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        return Dismissible(
+                          key: Key(expense.id.toString()),
+                          background: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            child: const Icon(
+                              Icons.delete,
+                              color: Colors.white,
+                              size: 32,
+                            ),
                           ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            onTap: () {
-                              Get.to(
-                                () => ExpenseDetailScreen(expense: expense),
-                                transition: Transition.rightToLeft,
-                              );
-                            },
-                            leading: CircleAvatar(
-                              backgroundColor: _getCategoryColor(
-                                expense.category,
-                              ).withOpacity(0.2),
-                              child: Icon(
-                                _getCategoryIcon(expense.category),
-                                color: _getCategoryColor(expense.category),
-                              ),
-                            ),
-                            title: Text(
-                              expense.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.category_outlined,
-                                      size: 14,
-                                      color: Colors.grey[600],
+                          direction: DismissDirection.endToStart,
+                          confirmDismiss: (direction) async {
+                            return await showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: Text('delete_expense'.tr),
+                                  content: Text(
+                                    'Are you sure you want to delete "${expense.title}"?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(false),
+                                      child: Text('cancel'.tr),
                                     ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      _getCategoryName(expense.category),
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 13,
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(true),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Colors.red,
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Icon(
-                                      Icons.access_time,
-                                      size: 14,
-                                      color: Colors.grey[600],
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      DateFormat('h:mm a').format(expense.date),
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 13,
-                                      ),
+                                      child: Text('delete'.tr),
                                     ),
                                   ],
+                                );
+                              },
+                            );
+                          },
+                          onDismissed: (direction) async {
+                            await controller.deleteExpense(expense.id!);
+                          },
+                          child: Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              onTap: () {
+                                Get.to(
+                                  () => ExpenseDetailScreen(expense: expense),
+                                  transition: Transition.rightToLeft,
+                                );
+                              },
+                              leading: CircleAvatar(
+                                backgroundColor: _getCategoryColor(
+                                  expense.category,
+                                ).withOpacity(0.2),
+                                child: Icon(
+                                  _getCategoryIcon(expense.category),
+                                  color: _getCategoryColor(expense.category),
                                 ),
-                                if (expense.note != null &&
-                                    expense.note!.isNotEmpty) ...[
-                                  const SizedBox(height: 6),
+                              ),
+                              title: Text(
+                                expense.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 4),
                                   Row(
                                     children: [
                                       Icon(
-                                        Icons.note,
+                                        Icons.category_outlined,
                                         size: 14,
                                         color: Colors.grey[600],
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Text(
-                                          expense.note!,
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 12,
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                                if (expense.voiceNotePath != null) ...[
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.mic,
-                                        size: 14,
-                                        color: Colors.blue[700],
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'voice_note_attached'.tr,
+                                        _getCategoryName(expense.category),
                                         style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Icon(
+                                        Icons.access_time,
+                                        size: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        DateFormat(
+                                          'h:mm a',
+                                        ).format(expense.date),
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (expense.note != null &&
+                                      expense.note!.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.note,
+                                          size: 14,
+                                          color: Colors.grey[600],
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            expense.note!,
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 12,
+                                              fontStyle: FontStyle.italic,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                  if (expense.voiceNotePath != null) ...[
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.mic,
+                                          size: 14,
                                           color: Colors.blue[700],
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'voice_note_attached'.tr,
+                                          style: TextStyle(
+                                            color: Colors.blue[700],
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                  if (expense.imagePath != null) ...[
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.photo,
+                                          size: 14,
+                                          color: Colors.green[700],
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'image_attached'.tr,
+                                          style: TextStyle(
+                                            color: Colors.green[700],
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.touch_app,
+                                        size: 12,
+                                        color: Colors.grey[400],
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'tap_for_details'.tr,
+                                        style: TextStyle(
+                                          color: Colors.grey[400],
+                                          fontSize: 11,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ],
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.touch_app,
-                                      size: 12,
-                                      color: Colors.grey[400],
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'tap_for_details'.tr,
-                                      style: TextStyle(
-                                        color: Colors.grey[400],
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
+                              ),
+                              trailing: Text(
+                                _formatCurrency(expense.amount),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
-                              ],
-                            ),
-                            trailing: Text(
-                              _formatCurrency(expense.amount),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
                           ),

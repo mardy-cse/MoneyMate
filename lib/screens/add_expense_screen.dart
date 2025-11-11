@@ -5,6 +5,7 @@ import 'package:flutter_sound/flutter_sound.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../models/expense.dart';
 import '../controllers/expense_controller.dart';
@@ -36,6 +37,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   String? _voiceNotePath;
   Duration _recordDuration = Duration.zero;
   bool _recorderInitialized = false;
+
+  // Image picker
+  final ImagePicker _imagePicker = ImagePicker();
+  String? _imagePath;
 
   final List<String> _categories = [
     'food',
@@ -244,6 +249,63 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     }
   }
 
+  // Pick image from camera or gallery
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() {
+          _imagePath = image.path;
+        });
+      }
+    } catch (e) {
+      Get.snackbar(
+        'error'.tr,
+        'Failed to pick image: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  // Show image source selection dialog
+  void _showImageSourceDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('add_image_memo'.tr),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: Text('camera'.tr),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: Text('gallery'.tr),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _saveExpense() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -269,10 +331,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               ? null
               : _noteController.text.trim(),
           voiceNotePath: _voiceNotePath,
+          imagePath: _imagePath,
         );
 
         // Save using controller
         await controller.addExpense(expense);
+
+        // Refresh expenses list for real-time update
+        await controller.fetchExpenses();
 
         if (!mounted) return;
 
@@ -690,6 +756,83 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         ],
                       ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Image Memo Section
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'image_memo_optional'.tr,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_imagePath == null)
+                        ElevatedButton.icon(
+                          onPressed: _showImageSourceDialog,
+                          icon: const Icon(Icons.add_photo_alternate),
+                          label: Text('add_image'.tr),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).primaryColor,
+                            foregroundColor: Colors.white,
+                          ),
+                        )
+                      else
+                        Column(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                File(_imagePath!),
+                                height: 200,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _showImageSourceDialog,
+                                    icon: const Icon(Icons.edit),
+                                    label: Text('change_image'.tr),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blue,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      setState(() {
+                                        _imagePath = null;
+                                      });
+                                    },
+                                    icon: const Icon(Icons.delete),
+                                    label: Text('remove'.tr),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 32),

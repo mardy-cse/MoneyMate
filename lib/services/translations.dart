@@ -28,6 +28,7 @@ class AppTranslations extends Translations {
       'no_expenses_today': 'No expenses today',
       'tap_to_add_first_expense': 'Tap + to add your first expense',
       'voice_note_attached': 'Voice note attached',
+      'image_attached': 'Image attached',
       'tap_for_details': 'Tap for details',
 
       // Add Expense
@@ -61,6 +62,13 @@ class AppTranslations extends Translations {
       'save_expense': 'Save Expense',
       'expense_saved_successfully': 'Expense saved successfully!',
       'error_saving_expense': 'Error saving expense',
+      'image_memo_optional': 'Image Memo (Optional)',
+      'add_image': 'Add Image',
+      'change_image': 'Change Image',
+      'remove': 'Remove',
+      'camera': 'Camera',
+      'gallery': 'Gallery',
+      'add_image_memo': 'Add Image Memo',
 
       // Categories
       'food': 'Food',
@@ -84,6 +92,7 @@ class AppTranslations extends Translations {
       // Expense Details
       'expense_details': 'Expense Details',
       'delete_expense': 'Delete Expense',
+      'delete_expenses': 'Delete Expenses',
       'delete_confirmation': 'Are you sure you want to delete this expense?',
       'cancel': 'Cancel',
       'deleted': 'Deleted',
@@ -223,6 +232,7 @@ class AppTranslations extends Translations {
       'no_expenses_today': 'আজ কোন খরচ নেই',
       'tap_to_add_first_expense': 'প্রথম খরচ যোগ করতে + চাপুন',
       'voice_note_attached': 'ভয়েস নোট সংযুক্ত',
+      'image_attached': 'ছবি সংযুক্ত',
       'tap_for_details': 'বিস্তারিত দেখতে ট্যাপ করুন',
 
       // Add Expense
@@ -254,6 +264,13 @@ class AppTranslations extends Translations {
       'play': 'চালান',
       'stop': 'বন্ধ করুন',
       'delete': 'মুছুন',
+      'image_memo_optional': 'ছবি মেমো (ঐচ্ছিক)',
+      'add_image': 'ছবি যোগ করুন',
+      'change_image': 'ছবি পরিবর্তন করুন',
+      'remove': 'সরান',
+      'camera': 'ক্যামেরা',
+      'gallery': 'গ্যালারি',
+      'add_image_memo': 'ছবি মেমো যোগ করুন',
       'save_expense': 'খরচ সংরক্ষণ করুন',
       'expense_saved_successfully': 'খরচ সফলভাবে সংরক্ষিত হয়েছে!',
       'error_saving_expense': 'খরচ সংরক্ষণে ত্রুটি',
@@ -280,6 +297,7 @@ class AppTranslations extends Translations {
       // Expense Details
       'expense_details': 'খরচের বিস্তারিত',
       'delete_expense': 'খরচ মুছুন',
+      'delete_expenses': 'খরচগুলি মুছুন',
       'delete_confirmation': 'আপনি কি নিশ্চিত যে এই খরচটি মুছতে চান?',
       'cancel': 'বাতিল',
       'deleted': 'মুছে ফেলা হয়েছে',

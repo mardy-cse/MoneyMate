@@ -28,6 +28,9 @@ void main() async {
   // Initialize the database when the app starts
   await DatabaseHelper().database;
 
+  // Add dummy expenses for testing (TEMPORARY - REMOVE AFTER TESTING)
+  await DatabaseHelper().insertDummyExpenses();
+
   // Initialize services and controllers
   Get.put(CurrencyService());
   Get.put(LanguageService());
