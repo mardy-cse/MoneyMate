@@ -58,7 +58,7 @@ class MoneyMateApp extends StatelessWidget {
         // Define named routes
         getPages: [
           GetPage(name: '/', page: () => const SplashScreen()),
-          GetPage(name: '/home', page: () => const HomeScreen()),
+          GetPage(name: '/home', page: () => HomeScreen()),
           GetPage(name: '/add-expense', page: () => const AddExpenseScreen()),
           GetPage(name: '/history', page: () => const ExpenseHistoryScreen()),
           GetPage(

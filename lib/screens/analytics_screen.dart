@@ -311,7 +311,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final filteredExpenses = _getFilteredExpenses();
     // Only sum expenses (positive amounts), not income
     final expensesOnly = filteredExpenses.where((e) => e.amount > 0).toList();
-    final total = expensesOnly.fold(0.0, (sum, expense) => sum + expense.amount);
+    final total = expensesOnly.fold(
+      0.0,
+      (sum, expense) => sum + expense.amount,
+    );
     final average = expensesOnly.isEmpty ? 0.0 : total / expensesOnly.length;
 
     return Card(

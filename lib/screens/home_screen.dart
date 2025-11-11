@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'dart:io';
 import '../controllers/expense_controller.dart';
 import '../controllers/personalization_controller.dart';
 import '../services/currency_service.dart';
@@ -8,7 +9,10 @@ import 'budget_screen.dart';
 import 'expense_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  HomeScreen({super.key});
+
+  // GlobalKey to access Scaffold state
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   String _formatCurrency(double amount) {
     final currencyService = CurrencyService.instance;
@@ -69,10 +73,24 @@ class HomeScreen extends StatelessWidget {
     final personalizationController = Get.find<PersonalizationController>();
 
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         title: Text('app_name'.tr),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          // Theme Toggle Button
+          Obx(() {
+            final isDark = personalizationController.isDarkMode.value;
+            return IconButton(
+              onPressed: () {
+                personalizationController.toggleDarkMode(!isDark);
+              },
+              icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, size: 24),
+              tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+            );
+          }),
+        ],
       ),
       drawer: Drawer(
         child: ListView(
@@ -95,6 +113,11 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   // User Profile Section
                   Obx(() {
+                    final hasImage = personalizationController
+                        .profileImagePath
+                        .value
+                        .isNotEmpty;
+
                     return Row(
                       children: [
                         Container(
@@ -105,44 +128,44 @@ class HomeScreen extends StatelessWidget {
                             color: Colors.white,
                             border: Border.all(color: Colors.white, width: 2),
                           ),
-                          child: Center(
-                            child:
-                                personalizationController
-                                    .profileImagePath
-                                    .value
-                                    .isEmpty
-                                ? Text(
-                                    personalizationController.getUserInitials(),
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                    ),
-                                  )
-                                : ClipOval(
-                                    child: Image.network(
+                          child: ClipOval(
+                            child: hasImage
+                                ? Image.file(
+                                    File(
                                       personalizationController
                                           .profileImagePath
                                           .value,
-                                      width: 60,
-                                      height: 60,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                            return Text(
-                                              personalizationController
-                                                  .getUserInitials(),
-                                              style: TextStyle(
-                                                fontSize: 24,
-                                                fontWeight: FontWeight.bold,
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.primary,
-                                              ),
-                                            );
-                                          },
+                                    ),
+                                    width: 60,
+                                    height: 60,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Center(
+                                        child: Text(
+                                          personalizationController
+                                              .getUserInitials(),
+                                          style: TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : Center(
+                                    child: Text(
+                                      personalizationController
+                                          .getUserInitials(),
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
                                     ),
                                   ),
                           ),
@@ -217,45 +240,55 @@ class HomeScreen extends StatelessWidget {
               leading: const Icon(Icons.calendar_month),
               title: Text('monthly_summary'.tr),
               subtitle: Text('view_monthly_reports'.tr),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                Get.toNamed('/monthly-summary');
+                await Get.toNamed('/monthly-summary');
+                // Reopen drawer after returning
+                _scaffoldKey.currentState?.openDrawer();
               },
             ),
             ListTile(
               leading: const Icon(Icons.bar_chart),
               title: Text('analytics'.tr),
               subtitle: Text('view_spending_analytics'.tr),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                Get.toNamed('/analytics');
+                await Get.toNamed('/analytics');
+                // Reopen drawer after returning
+                _scaffoldKey.currentState?.openDrawer();
               },
             ),
             ListTile(
               leading: const Icon(Icons.history),
               title: Text('expense_history'.tr),
               subtitle: Text('view_all_expenses'.tr),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                Get.toNamed('/history');
+                await Get.toNamed('/history');
+                // Reopen drawer after returning
+                _scaffoldKey.currentState?.openDrawer();
               },
             ),
             ListTile(
               leading: const Icon(Icons.trending_up),
               title: Text('income_history'.tr),
               subtitle: Text('view_all_incomes'.tr),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                Get.toNamed('/income-history');
+                await Get.toNamed('/income-history');
+                // Reopen drawer after returning
+                _scaffoldKey.currentState?.openDrawer();
               },
             ),
             ListTile(
               leading: const Icon(Icons.account_balance_wallet),
               title: Text('budgets_goals'.tr),
               subtitle: Text('manage_budgets_savings'.tr),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                Get.to(() => const BudgetScreen());
+                await Get.to(() => const BudgetScreen());
+                // Reopen drawer after returning
+                _scaffoldKey.currentState?.openDrawer();
               },
             ),
             const Divider(),
@@ -267,6 +300,8 @@ class HomeScreen extends StatelessWidget {
                 Navigator.pop(context);
                 await Get.toNamed('/settings');
                 controller.fetchExpenses();
+                // Reopen drawer after returning
+                _scaffoldKey.currentState?.openDrawer();
               },
             ),
             const Divider(),

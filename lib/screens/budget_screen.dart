@@ -65,11 +65,15 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
 
     if (category == 'Overall') {
-      return expenses.fold<double>(0.0, (sum, expense) => sum + expense.amount);
+      // Only sum expenses (positive amounts), not income
+      return expenses
+          .where((e) => e.amount > 0)
+          .fold<double>(0.0, (sum, expense) => sum + expense.amount);
     }
 
+    // Only sum expenses (positive amounts) for the category
     return expenses
-        .where((e) => e.category == category)
+        .where((e) => e.category == category && e.amount > 0)
         .fold<double>(0.0, (sum, expense) => sum + expense.amount);
   }
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../controllers/personalization_controller.dart';
 import '../services/currency_service.dart';
 
@@ -13,6 +15,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final personalizationController = Get.find<PersonalizationController>();
   final currencyService = Get.find<CurrencyService>();
+  final ImagePicker _imagePicker = ImagePicker();
 
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -41,6 +44,137 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _showImageSourceDialog() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Choose Profile Picture',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+
+            // Camera Option
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.camera_alt,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              title: const Text('Take Photo'),
+              subtitle: const Text('Use camera to take a new photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+
+            const SizedBox(height: 10),
+
+            // Gallery Option
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.photo_library,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              title: const Text('Choose from Gallery'),
+              subtitle: const Text('Select an existing photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+
+            // Remove Photo Option (if photo exists)
+            if (personalizationController
+                .profileImagePath
+                .value
+                .isNotEmpty) ...[
+              const SizedBox(height: 10),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.delete, color: Colors.red),
+                ),
+                title: const Text('Remove Photo'),
+                subtitle: const Text('Use default avatar'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _removePhoto();
+                },
+              ),
+            ],
+
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        await personalizationController.updateProfileImage(pickedFile.path);
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to pick image: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> _removePhoto() async {
+    await personalizationController.updateProfileImage('');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,6 +193,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // Profile Avatar
               Obx(() {
+                final hasImage =
+                    personalizationController.profileImagePath.value.isNotEmpty;
+
                 return Stack(
                   children: [
                     Container(
@@ -66,14 +203,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       height: 120,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [
-                            personalizationController.primaryColor,
-                            personalizationController.primaryColor.withOpacity(
-                              0.7,
-                            ),
-                          ],
-                        ),
+                        gradient: hasImage
+                            ? null
+                            : LinearGradient(
+                                colors: [
+                                  personalizationController.primaryColor,
+                                  personalizationController.primaryColor
+                                      .withOpacity(0.7),
+                                ],
+                              ),
                         boxShadow: [
                           BoxShadow(
                             color: personalizationController.primaryColor
@@ -83,39 +221,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ],
                       ),
-                      child: Center(
-                        child:
-                            personalizationController
-                                .profileImagePath
-                                .value
-                                .isEmpty
-                            ? Text(
-                                personalizationController.getUserInitials(),
-                                style: const TextStyle(
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : ClipOval(
-                                child: Image.network(
+                      child: ClipOval(
+                        child: hasImage
+                            ? Image.file(
+                                File(
                                   personalizationController
                                       .profileImagePath
                                       .value,
-                                  width: 120,
-                                  height: 120,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Text(
-                                      personalizationController
-                                          .getUserInitials(),
-                                      style: const TextStyle(
-                                        fontSize: 48,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                ),
+                                width: 120,
+                                height: 120,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          personalizationController
+                                              .primaryColor,
+                                          personalizationController.primaryColor
+                                              .withOpacity(0.7),
+                                        ],
                                       ),
-                                    );
-                                  },
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        personalizationController
+                                            .getUserInitials(),
+                                        style: const TextStyle(
+                                          fontSize: 48,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : Center(
+                                child: Text(
+                                  personalizationController.getUserInitials(),
+                                  style: const TextStyle(
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                       ),
@@ -135,13 +285,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: IconButton(
                           icon: const Icon(Icons.camera_alt, size: 20),
                           color: Colors.white,
-                          onPressed: () {
-                            Get.snackbar(
-                              'Info',
-                              'Image upload feature coming soon!',
-                              snackPosition: SnackPosition.BOTTOM,
-                            );
-                          },
+                          onPressed: _showImageSourceDialog,
                         ),
                       ),
                     ),

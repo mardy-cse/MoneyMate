@@ -255,6 +255,32 @@ class PersonalizationController extends GetxController {
     }
   }
 
+  // Update profile image only
+  Future<void> updateProfileImage(String imagePath) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      profileImagePath.value = imagePath;
+      await prefs.setString(_profileImageKey, imagePath);
+
+      Get.snackbar(
+        'Success',
+        'Profile picture updated',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to update profile picture: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
   // Get current primary color
   Color get primaryColor => colorPalette[selectedColorIndex.value];
 
