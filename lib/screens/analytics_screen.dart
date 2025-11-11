@@ -441,21 +441,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Period Selector
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: SegmentedButton<String>(
-                          segments: _periods.map((period) {
-                            return ButtonSegment<String>(
-                              value: period,
-                              label: Text(period),
-                            );
-                          }).toList(),
-                          selected: {_selectedPeriod},
-                          onSelectionChanged: (Set<String> selected) {
-                            setState(() {
-                              _selectedPeriod = selected.first;
-                            });
-                          },
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: SegmentedButton<String>(
+                            segments: _periods.map((period) {
+                              return ButtonSegment<String>(
+                                value: period,
+                                label: Text(period),
+                              );
+                            }).toList(),
+                            selected: {_selectedPeriod},
+                            onSelectionChanged: (Set<String> selected) {
+                              setState(() {
+                                _selectedPeriod = selected.first;
+                              });
+                            },
+                          ),
                         ),
                       ),
 

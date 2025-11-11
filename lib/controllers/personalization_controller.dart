@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class PersonalizationController extends GetxController {
   // Observable variables
   final isDarkMode = false.obs;
-  final selectedColorIndex = 0.obs;
+  final selectedColorIndex = 1.obs; // Default to Blue (index 1)
   final userName = ''.obs;
   final userEmail = ''.obs;
   final profileImagePath = ''.obs;
@@ -21,8 +21,8 @@ class PersonalizationController extends GetxController {
 
   // Predefined color palette
   final List<Color> colorPalette = [
-    const Color(0xFF4CAF50), // Green (default)
-    const Color(0xFF2196F3), // Blue
+    const Color(0xFF2196F3), // Blue (default)
+    const Color(0xFF4CAF50), // Green
     const Color(0xFFFF9800), // Orange
     const Color(0xFF9C27B0), // Purple
     const Color(0xFFE91E63), // Pink
@@ -32,8 +32,8 @@ class PersonalizationController extends GetxController {
   ];
 
   final List<String> colorNames = [
-    'Green',
     'Blue',
+    'Green',
     'Orange',
     'Purple',
     'Pink',
