@@ -417,6 +417,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             onTap: () => Get.toNamed('/theme-customization'),
                           ),
+                          const Divider(height: 1),
+                          ListTile(
+                            leading: Icon(
+                              Icons.security,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            title: const Text('Security & Privacy'),
+                            subtitle: const Text('PIN, Pattern & Biometric'),
+                            trailing: const Icon(
+                              Icons.arrow_forward_ios,
+                              size: 16,
+                            ),
+                            onTap: () => Get.toNamed('/security-settings'),
+                          ),
                         ],
                       ),
                     ),

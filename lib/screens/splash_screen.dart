@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:async';
+import '../controllers/security_controller.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -44,8 +45,24 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Navigate to home after 3 seconds
     Timer(const Duration(seconds: 3), () {
-      Get.offAllNamed('/home');
+      _navigateToNextScreen();
     });
+  }
+
+  void _navigateToNextScreen() {
+    final securityController = Get.find<SecurityController>();
+
+    // Check if security is enabled and properly set up
+    if (securityController.isSecurityEnabled.value &&
+        securityController.isSecuritySetup()) {
+      // Security is enabled, show lock screen first
+      Get.offAllNamed('/lock');
+      // After unlock, navigate to home
+      // The lock screen will handle navigation to home
+    } else {
+      // No security, go directly to home
+      Get.offAllNamed('/home');
+    }
   }
 
   @override

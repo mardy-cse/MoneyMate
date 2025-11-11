@@ -11,12 +11,15 @@ import 'screens/monthly_summary_screen.dart';
 import 'screens/budget_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/theme_customization_screen.dart';
+import 'screens/lock_screen.dart';
+import 'screens/security_settings_screen.dart';
 import 'services/database_helper.dart';
 import 'services/currency_service.dart';
 import 'services/language_service.dart';
 import 'services/translations.dart';
 import 'controllers/expense_controller.dart';
 import 'controllers/personalization_controller.dart';
+import 'controllers/security_controller.dart';
 
 void main() async {
   // Ensure Flutter bindings are initialized
@@ -29,13 +32,54 @@ void main() async {
   Get.put(CurrencyService());
   Get.put(LanguageService());
   Get.put(PersonalizationController());
+  Get.put(SecurityController());
   Get.put(ExpenseController());
 
   runApp(const MoneyMateApp());
 }
 
-class MoneyMateApp extends StatelessWidget {
+class MoneyMateApp extends StatefulWidget {
   const MoneyMateApp({super.key});
+
+  @override
+  State<MoneyMateApp> createState() => _MoneyMateAppState();
+}
+
+class _MoneyMateAppState extends State<MoneyMateApp>
+    with WidgetsBindingObserver {
+  final securityController = Get.find<SecurityController>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      // App is going to background
+      securityController.checkAutoLock();
+    } else if (state == AppLifecycleState.resumed) {
+      // App is coming to foreground
+      if (securityController.isSecurityEnabled.value &&
+          securityController.isLocked.value) {
+        // Show lock screen
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Get.to(() => const LockScreen());
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +121,11 @@ class MoneyMateApp extends StatelessWidget {
             name: '/theme-customization',
             page: () => const ThemeCustomizationScreen(),
           ),
+          GetPage(
+            name: '/security-settings',
+            page: () => const SecuritySettingsScreen(),
+          ),
+          GetPage(name: '/lock', page: () => const LockScreen()),
         ],
       ),
     );
