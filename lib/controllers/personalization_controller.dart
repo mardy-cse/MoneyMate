@@ -144,10 +144,14 @@ class PersonalizationController extends GetxController {
         colorScheme: ColorScheme.fromSeed(
           seedColor: primaryColor,
           brightness: Brightness.dark,
+          surface: const Color(0xFF121212), // Darker background
+          surfaceContainerHighest: const Color(0xFF1E1E1E), // Card background
         ),
         useMaterial3: true,
         cardTheme: CardThemeData(
           elevation: 2,
+          color: const Color(0xFF1E1E1E), // Darker card color
+          shadowColor: Colors.black.withOpacity(0.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -162,10 +166,28 @@ class PersonalizationController extends GetxController {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          fillColor: const Color(0xFF1E1E1E), // Darker input field background
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade800),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade800),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: primaryColor, width: 2),
+          ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 16,
+          ),
+        ),
+        listTileTheme: const ListTileThemeData(
+          tileColor: Color(0xFF1E1E1E), // Darker ListTile background
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
           ),
         ),
         appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),

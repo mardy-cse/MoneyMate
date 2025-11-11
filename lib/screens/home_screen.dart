@@ -93,222 +93,249 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
+        child: Column(
           children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.secondary,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
                 children: [
-                  // User Profile Section
-                  Obx(() {
-                    final hasImage = personalizationController
-                        .profileImagePath
-                        .value
-                        .isNotEmpty;
+                  DrawerHeader(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: Theme.of(context).brightness == Brightness.dark
+                            ? [
+                                Theme.of(
+                                  context,
+                                ).colorScheme.primary.withOpacity(0.5),
+                                Theme.of(
+                                  context,
+                                ).colorScheme.secondary.withOpacity(0.4),
+                              ]
+                            : [
+                                Theme.of(context).colorScheme.primary,
+                                Theme.of(context).colorScheme.secondary,
+                              ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // User Profile Section
+                        Obx(() {
+                          final hasImage = personalizationController
+                              .profileImagePath
+                              .value
+                              .isNotEmpty;
 
-                    return InkWell(
-                      onTap: () {
-                        Get.toNamed('/profile');
-                      },
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                            child: ClipOval(
-                            child: hasImage
-                                ? Image.file(
-                                    File(
-                                      personalizationController
-                                          .profileImagePath
-                                          .value,
-                                    ),
-                                    width: 60,
-                                    height: 60,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Center(
-                                        child: Text(
-                                          personalizationController
-                                              .getUserInitials(),
-                                          style: TextStyle(
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.bold,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  )
-                                : Center(
-                                    child: Text(
-                                      personalizationController
-                                          .getUserInitials(),
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                      ),
+                          return InkWell(
+                            onTap: () {
+                              Get.toNamed('/profile');
+                            },
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
                                     ),
                                   ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                personalizationController
-                                        .userName
-                                        .value
-                                        .isNotEmpty
-                                    ? personalizationController.userName.value
-                                    : 'Guest User',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                                  child: ClipOval(
+                                    child: hasImage
+                                        ? Image.file(
+                                            File(
+                                              personalizationController
+                                                  .profileImagePath
+                                                  .value,
+                                            ),
+                                            width: 60,
+                                            height: 60,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                                  return Center(
+                                                    child: Text(
+                                                      personalizationController
+                                                          .getUserInitials(),
+                                                      style: TextStyle(
+                                                        fontSize: 24,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Theme.of(
+                                                          context,
+                                                        ).colorScheme.primary,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                          )
+                                        : Center(
+                                            child: Text(
+                                              personalizationController
+                                                  .getUserInitials(),
+                                              style: TextStyle(
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.bold,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
+                                              ),
+                                            ),
+                                          ),
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                personalizationController
-                                        .userEmail
-                                        .value
-                                        .isNotEmpty
-                                    ? personalizationController.userEmail.value
-                                    : 'Tap to set up profile',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontSize: 13,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        personalizationController
+                                                .userName
+                                                .value
+                                                .isNotEmpty
+                                            ? personalizationController
+                                                  .userName
+                                                  .value
+                                            : 'Guest User',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        personalizationController
+                                                .userEmail
+                                                .value
+                                                .isNotEmpty
+                                            ? personalizationController
+                                                  .userEmail
+                                                  .value
+                                            : 'Tap to set up profile',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.9),
+                                          fontSize: 13,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              ],
+                            ),
+                          );
+                        }),
+                        // App Info
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'app_name'.tr,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
                               ),
-                            ],
-                          ),
+                            ),
+                            Text(
+                              'app_tagline'.tr,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
-                      ),
-                    );
-                  }),
-                  // App Info
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'app_name'.tr,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'app_tagline'.tr,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
+                  ListTile(
+                    leading: const Icon(Icons.calendar_month),
+                    title: Text('monthly_summary'.tr),
+                    subtitle: Text('view_monthly_reports'.tr),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await Get.toNamed('/monthly-summary');
+                      // Reopen drawer after returning
+                      _scaffoldKey.currentState?.openDrawer();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.bar_chart),
+                    title: Text('analytics'.tr),
+                    subtitle: Text('view_spending_analytics'.tr),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await Get.toNamed('/analytics');
+                      // Reopen drawer after returning
+                      _scaffoldKey.currentState?.openDrawer();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.history),
+                    title: Text('expense_history'.tr),
+                    subtitle: Text('view_all_expenses'.tr),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await Get.toNamed('/history');
+                      // Reopen drawer after returning
+                      _scaffoldKey.currentState?.openDrawer();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.trending_up),
+                    title: Text('income_history'.tr),
+                    subtitle: Text('view_all_incomes'.tr),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await Get.toNamed('/income-history');
+                      // Reopen drawer after returning
+                      _scaffoldKey.currentState?.openDrawer();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.account_balance_wallet),
+                    title: Text('budgets_goals'.tr),
+                    subtitle: Text('manage_budgets_savings'.tr),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await Get.to(() => const BudgetScreen());
+                      // Reopen drawer after returning
+                      _scaffoldKey.currentState?.openDrawer();
+                    },
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.settings),
+                    title: Text('settings'.tr),
+                    subtitle: Text('app_settings_budget'.tr),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await Get.toNamed('/settings');
+                      controller.fetchExpenses();
+                      // Reopen drawer after returning
+                      _scaffoldKey.currentState?.openDrawer();
+                    },
+                  ),
+                  const Divider(),
                 ],
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.calendar_month),
-              title: Text('monthly_summary'.tr),
-              subtitle: Text('view_monthly_reports'.tr),
-              onTap: () async {
-                Navigator.pop(context);
-                await Get.toNamed('/monthly-summary');
-                // Reopen drawer after returning
-                _scaffoldKey.currentState?.openDrawer();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.bar_chart),
-              title: Text('analytics'.tr),
-              subtitle: Text('view_spending_analytics'.tr),
-              onTap: () async {
-                Navigator.pop(context);
-                await Get.toNamed('/analytics');
-                // Reopen drawer after returning
-                _scaffoldKey.currentState?.openDrawer();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.history),
-              title: Text('expense_history'.tr),
-              subtitle: Text('view_all_expenses'.tr),
-              onTap: () async {
-                Navigator.pop(context);
-                await Get.toNamed('/history');
-                // Reopen drawer after returning
-                _scaffoldKey.currentState?.openDrawer();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.trending_up),
-              title: Text('income_history'.tr),
-              subtitle: Text('view_all_incomes'.tr),
-              onTap: () async {
-                Navigator.pop(context);
-                await Get.toNamed('/income-history');
-                // Reopen drawer after returning
-                _scaffoldKey.currentState?.openDrawer();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.account_balance_wallet),
-              title: Text('budgets_goals'.tr),
-              subtitle: Text('manage_budgets_savings'.tr),
-              onTap: () async {
-                Navigator.pop(context);
-                await Get.to(() => const BudgetScreen());
-                // Reopen drawer after returning
-                _scaffoldKey.currentState?.openDrawer();
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: Text('settings'.tr),
-              subtitle: Text('app_settings_budget'.tr),
-              onTap: () async {
-                Navigator.pop(context);
-                await Get.toNamed('/settings');
-                controller.fetchExpenses();
-                // Reopen drawer after returning
-                _scaffoldKey.currentState?.openDrawer();
-              },
-            ),
+            // Version at bottom - outside ListView
             const Divider(),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -339,10 +366,19 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.secondary,
-                  ],
+                  colors: Theme.of(context).brightness == Brightness.dark
+                      ? [
+                          Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.5),
+                          Theme.of(
+                            context,
+                          ).colorScheme.secondary.withOpacity(0.4),
+                        ]
+                      : [
+                          Theme.of(context).colorScheme.primary,
+                          Theme.of(context).colorScheme.secondary,
+                        ],
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
