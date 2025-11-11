@@ -310,12 +310,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Widget _buildSummaryCard() {
     final filteredExpenses = _getFilteredExpenses();
     // Only sum expenses (positive amounts), not income
-    final total = filteredExpenses
-        .where((e) => e.amount > 0)
-        .fold(0.0, (sum, expense) => sum + expense.amount);
-    final average = filteredExpenses.isEmpty
-        ? 0.0
-        : total / filteredExpenses.length;
+    final expensesOnly = filteredExpenses.where((e) => e.amount > 0).toList();
+    final total = expensesOnly.fold(0.0, (sum, expense) => sum + expense.amount);
+    final average = expensesOnly.isEmpty ? 0.0 : total / expensesOnly.length;
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -398,7 +395,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${filteredExpenses.length}',
+                      '${expensesOnly.length}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,

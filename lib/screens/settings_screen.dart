@@ -371,6 +371,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Personalization Section
+                    const Text(
+                      'Personalization',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          ListTile(
+                            leading: Icon(
+                              Icons.person,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            title: const Text('My Profile'),
+                            subtitle: const Text(
+                              'Manage your personal information',
+                            ),
+                            trailing: const Icon(
+                              Icons.arrow_forward_ios,
+                              size: 16,
+                            ),
+                            onTap: () => Get.toNamed('/profile'),
+                          ),
+                          const Divider(height: 1),
+                          ListTile(
+                            leading: Icon(
+                              Icons.palette,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            title: const Text('Theme & Colors'),
+                            subtitle: const Text('Customize app appearance'),
+                            trailing: const Icon(
+                              Icons.arrow_forward_ios,
+                              size: 16,
+                            ),
+                            onTap: () => Get.toNamed('/theme-customization'),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
                     // Budget Status Section
                     const Text(
                       'Budget Status',

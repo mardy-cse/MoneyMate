@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../controllers/expense_controller.dart';
+import '../controllers/personalization_controller.dart';
 import '../services/currency_service.dart';
 import 'budget_screen.dart';
 import 'expense_detail_screen.dart';
@@ -65,6 +66,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Get the ExpenseController instance
     final ExpenseController controller = Get.find<ExpenseController>();
+    final personalizationController = Get.find<PersonalizationController>();
 
     return Scaffold(
       appBar: AppBar(
@@ -89,40 +91,128 @@ class HomeScreen extends StatelessWidget {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(
-                    Icons.account_balance_wallet,
-                    size: 60,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'app_name'.tr,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'app_tagline'.tr,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 14,
-                    ),
+                  // User Profile Section
+                  Obx(() {
+                    return Row(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: Center(
+                            child:
+                                personalizationController
+                                    .profileImagePath
+                                    .value
+                                    .isEmpty
+                                ? Text(
+                                    personalizationController.getUserInitials(),
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
+                                  )
+                                : ClipOval(
+                                    child: Image.network(
+                                      personalizationController
+                                          .profileImagePath
+                                          .value,
+                                      width: 60,
+                                      height: 60,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return Text(
+                                              personalizationController
+                                                  .getUserInitials(),
+                                              style: TextStyle(
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.bold,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
+                                              ),
+                                            );
+                                          },
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                personalizationController
+                                        .userName
+                                        .value
+                                        .isNotEmpty
+                                    ? personalizationController.userName.value
+                                    : 'Guest User',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                personalizationController
+                                        .userEmail
+                                        .value
+                                        .isNotEmpty
+                                    ? personalizationController.userEmail.value
+                                    : 'Tap to set up profile',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 13,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                  // App Info
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'app_name'.tr,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'app_tagline'.tr,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: Text('home'.tr),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            const Divider(),
             ListTile(
               leading: const Icon(Icons.calendar_month),
               title: Text('monthly_summary'.tr),
