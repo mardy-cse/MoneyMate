@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/add_expense_screen.dart';
@@ -17,6 +18,7 @@ import 'services/database_helper.dart';
 import 'services/currency_service.dart';
 import 'services/language_service.dart';
 import 'services/translations.dart';
+import 'services/firebase_service.dart';
 import 'controllers/expense_controller.dart';
 import 'controllers/personalization_controller.dart';
 import 'controllers/security_controller.dart';
@@ -24,6 +26,14 @@ import 'controllers/security_controller.dart';
 void main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase (with error handling)
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    print('Firebase initialization error: $e');
+    // Continue without Firebase if initialization fails
+  }
 
   // Initialize the database when the app starts
   await DatabaseHelper().database;
@@ -33,7 +43,16 @@ void main() async {
   Get.put(LanguageService());
   Get.put(PersonalizationController());
   Get.put(SecurityController());
-  Get.put(ExpenseController());
+
+  // Initialize Firebase service only if Firebase is initialized
+  try {
+    Get.put(FirebaseService());
+  } catch (e) {
+    print('FirebaseService initialization error: $e');
+    // Continue without FirebaseService
+  }
+
+  Get.put(ExpenseController()); // ExpenseController will work without Firebase
 
   runApp(const MoneyMateApp());
 }

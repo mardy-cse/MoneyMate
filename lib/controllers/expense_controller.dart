@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../models/expense.dart';
 import '../services/database_helper.dart';
+import '../services/firebase_service.dart';
 
 class ExpenseController extends GetxController {
   // Observable list of expenses
@@ -15,6 +16,15 @@ class ExpenseController extends GetxController {
 
   // Loading state
   final RxBool isLoading = false.obs;
+
+  // Firebase service - lazy getter
+  FirebaseService? get _firebaseService {
+    try {
+      return Get.find<FirebaseService>();
+    } catch (e) {
+      return null;
+    }
+  }
 
   @override
   void onInit() {
@@ -58,6 +68,9 @@ class ExpenseController extends GetxController {
       expenses.insert(0, newExpense); // Add to beginning of list
       _calculateTotals();
 
+      // Auto sync to cloud if enabled (null-safe)
+      _firebaseService?.autoSyncExpense(newExpense);
+
       // No snackbar here - let the screen handle UI feedback
     } catch (e) {
       // Just rethrow the error, let the screen handle it
@@ -71,6 +84,9 @@ class ExpenseController extends GetxController {
       await DatabaseHelper().deleteExpense(id);
       expenses.removeWhere((expense) => expense.id == id);
       _calculateTotals();
+
+      // Delete from cloud if synced (null-safe)
+      _firebaseService?.deleteExpenseFromCloud(id);
 
       Get.snackbar(
         'Success',

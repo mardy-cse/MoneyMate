@@ -51,6 +51,11 @@ dependencies:
   local_auth: ^2.1.7
   flutter_screen_lock: ^9.0.1
   pattern_lock: ^2.0.0
+  # Firebase packages for cloud sync
+  firebase_core: ^3.8.1
+  firebase_auth: ^5.3.3
+  cloud_firestore: ^5.5.2
+  connectivity_plus: ^6.1.1
 
 dev_dependencies:
   flutter_test:

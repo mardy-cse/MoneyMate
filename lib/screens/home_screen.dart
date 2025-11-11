@@ -7,6 +7,7 @@ import '../controllers/personalization_controller.dart';
 import '../services/currency_service.dart';
 import 'budget_screen.dart';
 import 'expense_detail_screen.dart';
+import 'cloud_sync_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -334,6 +335,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                   const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.cloud),
+                    title: const Text('Cloud Backup & Sync'),
+                    subtitle: const Text('Backup and sync your data'),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await Get.to(() => const CloudSyncScreen());
+                      // Reopen drawer after returning
+                      _scaffoldKey.currentState?.openDrawer();
+                    },
+                  ),
                   ListTile(
                     leading: const Icon(Icons.settings),
                     title: Text('settings'.tr),
