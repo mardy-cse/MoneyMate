@@ -173,6 +173,15 @@ class _CloudSyncScreenState extends State<CloudSyncScreen>
     );
 
     if (result['success']) {
+      // Clear the form fields
+      _signUpNameController.clear();
+      _signUpEmailController.clear();
+      _signUpPasswordController.clear();
+      _signUpConfirmPasswordController.clear();
+
+      // Refresh the currentUser to ensure profile is populated
+      await Future.delayed(const Duration(milliseconds: 500));
+      
       Get.snackbar(
         'Success',
         result['message'],
@@ -180,6 +189,9 @@ class _CloudSyncScreenState extends State<CloudSyncScreen>
         colorText: Colors.white,
         duration: const Duration(seconds: 2),
       );
+
+      // Wait a bit to ensure UI updates, then show dialog
+      await Future.delayed(const Duration(milliseconds: 300));
 
       // Ask if user wants to upload existing local data
       Get.dialog(
@@ -195,14 +207,12 @@ class _CloudSyncScreenState extends State<CloudSyncScreen>
             TextButton(
               onPressed: () {
                 Get.back();
-                _tabController.animateTo(0); // Go to sign in tab
               },
               child: const Text('Skip'),
             ),
             ElevatedButton(
               onPressed: () {
                 Get.back();
-                _tabController.animateTo(0); // Go to sign in tab
                 _handleUpload();
               },
               child: const Text('Upload & Backup'),

@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../controllers/personalization_controller.dart';
 import '../services/currency_service.dart';
+import '../services/firebase_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -176,6 +177,262 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _removePhoto() async {
     await personalizationController.updateProfileImage('');
+  }
+
+  Future<void> _showChangePasswordDialog() async {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    bool currentPasswordVisible = false;
+    bool newPasswordVisible = false;
+    bool confirmPasswordVisible = false;
+
+    // Check if user is logged in with Firebase
+    FirebaseService? firebaseService;
+    try {
+      firebaseService = Get.find<FirebaseService>();
+      if (firebaseService.currentUser.value == null) {
+        Get.snackbar(
+          'Error',
+          'You need to be signed in with Firebase to change password',
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Firebase authentication not available',
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    await Get.dialog(
+      StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Change Password'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Current Password
+                  TextField(
+                    controller: currentPasswordController,
+                    obscureText: !currentPasswordVisible,
+                    decoration: InputDecoration(
+                      labelText: 'Current Password',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          currentPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            currentPasswordVisible = !currentPasswordVisible;
+                          });
+                        },
+                      ),
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // New Password
+                  TextField(
+                    controller: newPasswordController,
+                    obscureText: !newPasswordVisible,
+                    decoration: InputDecoration(
+                      labelText: 'New Password',
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          newPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            newPasswordVisible = !newPasswordVisible;
+                          });
+                        },
+                      ),
+                      border: const OutlineInputBorder(),
+                      helperText: 'Minimum 6 characters',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Confirm Password
+                  TextField(
+                    controller: confirmPasswordController,
+                    obscureText: !confirmPasswordVisible,
+                    decoration: InputDecoration(
+                      labelText: 'Confirm New Password',
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          confirmPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            confirmPasswordVisible = !confirmPasswordVisible;
+                          });
+                        },
+                      ),
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  currentPasswordController.dispose();
+                  newPasswordController.dispose();
+                  confirmPasswordController.dispose();
+                  Get.back();
+                },
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  // Validate inputs
+                  if (currentPasswordController.text.isEmpty) {
+                    Get.snackbar(
+                      'Error',
+                      'Please enter your current password',
+                      backgroundColor: Colors.red,
+                      colorText: Colors.white,
+                    );
+                    return;
+                  }
+
+                  if (newPasswordController.text.length < 6) {
+                    Get.snackbar(
+                      'Error',
+                      'New password must be at least 6 characters',
+                      backgroundColor: Colors.red,
+                      colorText: Colors.white,
+                    );
+                    return;
+                  }
+
+                  if (newPasswordController.text !=
+                      confirmPasswordController.text) {
+                    Get.snackbar(
+                      'Error',
+                      'New passwords do not match',
+                      backgroundColor: Colors.red,
+                      colorText: Colors.white,
+                    );
+                    return;
+                  }
+
+                  if (currentPasswordController.text ==
+                      newPasswordController.text) {
+                    Get.snackbar(
+                      'Error',
+                      'New password must be different from current password',
+                      backgroundColor: Colors.red,
+                      colorText: Colors.white,
+                    );
+                    return;
+                  }
+
+                  // Show loading dialog
+                  Get.dialog(
+                    const Center(
+                      child: Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 16),
+                              Text('Changing password...'),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    barrierDismissible: false,
+                  );
+
+                  // Change password
+                  try {
+                    final result = await firebaseService!.changePassword(
+                      currentPassword: currentPasswordController.text,
+                      newPassword: newPasswordController.text,
+                    );
+
+                    // Close loading dialog
+                    Get.back();
+
+                    // Close password dialog
+                    Get.back();
+
+                    // Dispose controllers
+                    currentPasswordController.dispose();
+                    newPasswordController.dispose();
+                    confirmPasswordController.dispose();
+
+                    // Show result
+                    if (result['success']) {
+                      Get.snackbar(
+                        'Success',
+                        result['message'],
+                        backgroundColor: Colors.green,
+                        colorText: Colors.white,
+                        duration: const Duration(seconds: 3),
+                      );
+                    } else {
+                      Get.snackbar(
+                        'Error',
+                        result['message'],
+                        backgroundColor: Colors.red,
+                        colorText: Colors.white,
+                        duration: const Duration(seconds: 4),
+                      );
+                    }
+                  } catch (e) {
+                    // Close loading dialog
+                    Get.back();
+
+                    // Close password dialog
+                    Get.back();
+
+                    // Dispose controllers
+                    currentPasswordController.dispose();
+                    newPasswordController.dispose();
+                    confirmPasswordController.dispose();
+
+                    // Show error
+                    Get.snackbar(
+                      'Error',
+                      'Failed to change password: $e',
+                      backgroundColor: Colors.red,
+                      colorText: Colors.white,
+                      duration: const Duration(seconds: 4),
+                    );
+                  }
+                },
+                child: const Text('Change Password'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -397,7 +654,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 20),
+
+              // Change Password Button (Only for Firebase users)
+              Obx(() {
+                // Check if Firebase is available and user is logged in
+                try {
+                  final firebaseService = Get.find<FirebaseService>();
+                  if (firebaseService.currentUser.value != null) {
+                    return SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _showChangePasswordDialog,
+                        icon: const Icon(Icons.lock_reset),
+                        label: const Text(
+                          'Change Password',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  // Firebase not available
+                }
+                return const SizedBox.shrink();
+              }),
+
+              const SizedBox(height: 20),
 
               // Save Button
               SizedBox(

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import '../models/expense.dart';
+import '../controllers/personalization_controller.dart';
 import 'database_helper.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -56,6 +57,12 @@ class FirebaseService extends GetxService {
       // Update display name
       await userCredential.user?.updateDisplayName(name);
 
+      // Reload user to get updated display name
+      await userCredential.user?.reload();
+      
+      // Update currentUser with fresh data
+      currentUser.value = _auth.currentUser;
+
       // Create user document in Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'name': name,
@@ -64,8 +71,23 @@ class FirebaseService extends GetxService {
         'lastSync': FieldValue.serverTimestamp(),
       });
 
+      // Sync profile to PersonalizationController
+      try {
+        final personalizationController = Get.find<PersonalizationController>();
+        await personalizationController.syncFromFirebaseUser(
+          name: name,
+          email: email,
+        );
+      } catch (e) {
+        print('Error syncing to PersonalizationController: $e');
+      }
+
       isLoading.value = false;
-      return {'success': true, 'message': 'Account created successfully'};
+      return {
+        'success': true, 
+        'message': 'Account created successfully',
+        'user': currentUser.value,
+      };
     } on FirebaseAuthException catch (e) {
       isLoading.value = false;
       String message = 'An error occurred';
@@ -103,7 +125,33 @@ class FirebaseService extends GetxService {
         return {'success': false, 'message': 'No internet connection'};
       }
 
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Get user data from Firestore
+      final userDoc = await _firestore
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        final name = userData?['name'] ?? userCredential.user?.displayName ?? '';
+        final userEmail = userData?['email'] ?? userCredential.user?.email ?? '';
+
+        // Sync profile to PersonalizationController
+        try {
+          final personalizationController = Get.find<PersonalizationController>();
+          await personalizationController.syncFromFirebaseUser(
+            name: name,
+            email: userEmail,
+          );
+        } catch (e) {
+          print('Error syncing to PersonalizationController: $e');
+        }
+      }
 
       isLoading.value = false;
       return {'success': true, 'message': 'Signed in successfully'};
@@ -152,6 +200,62 @@ class FirebaseService extends GetxService {
         message = 'No user found for this email';
       } else if (e.code == 'invalid-email') {
         message = 'The email address is invalid';
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      isLoading.value = false;
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  // Change password for current user
+  Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      isLoading.value = true;
+
+      final user = currentUser.value;
+      if (user == null) {
+        return {'success': false, 'message': 'Please sign in first'};
+      }
+
+      // Check internet
+      if (!await hasInternetConnection()) {
+        return {'success': false, 'message': 'No internet connection'};
+      }
+
+      // Re-authenticate user with current password
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: currentPassword,
+      );
+
+      try {
+        await user.reauthenticateWithCredential(credential);
+      } on FirebaseAuthException catch (e) {
+        isLoading.value = false;
+        if (e.code == 'wrong-password') {
+          return {'success': false, 'message': 'Current password is incorrect'};
+        }
+        return {'success': false, 'message': 'Authentication failed: ${e.message}'};
+      }
+
+      // Change password
+      await user.updatePassword(newPassword);
+
+      isLoading.value = false;
+      return {'success': true, 'message': 'Password changed successfully'};
+    } on FirebaseAuthException catch (e) {
+      isLoading.value = false;
+      String message = 'An error occurred';
+      if (e.code == 'weak-password') {
+        message = 'The new password is too weak (minimum 6 characters)';
+      } else if (e.code == 'requires-recent-login') {
+        message = 'Please sign out and sign in again before changing password';
+      } else {
+        message = 'Error: ${e.message}';
       }
       return {'success': false, 'message': message};
     } catch (e) {

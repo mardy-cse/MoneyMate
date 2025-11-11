@@ -303,6 +303,46 @@ class PersonalizationController extends GetxController {
     }
   }
 
+  // Sync profile from Firebase user (silently without snackbar)
+  Future<void> syncFromFirebaseUser({
+    required String name,
+    required String email,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Only update if the data is different
+      if (userName.value != name || userEmail.value != email) {
+        userName.value = name;
+        userEmail.value = email;
+
+        await prefs.setString(_userNameKey, name);
+        await prefs.setString(_userEmailKey, email);
+        
+        debugPrint('Profile synced from Firebase: $name, $email');
+      }
+    } catch (e) {
+      debugPrint('Error syncing profile from Firebase: $e');
+    }
+  }
+
+  // Clear profile data on logout
+  Future<void> clearFirebaseProfile() async {
+    try {
+      // Clear only Firebase-related data, keep local profile if exists
+      // Or you can clear everything by uncommenting below:
+      // final prefs = await SharedPreferences.getInstance();
+      // userName.value = '';
+      // userEmail.value = '';
+      // await prefs.remove(_userNameKey);
+      // await prefs.remove(_userEmailKey);
+
+      debugPrint('Firebase profile cleared');
+    } catch (e) {
+      debugPrint('Error clearing Firebase profile: $e');
+    }
+  }
+
   // Get current primary color
   Color get primaryColor => colorPalette[selectedColorIndex.value];
 
