@@ -118,17 +118,21 @@ class HomeScreen extends StatelessWidget {
                         .value
                         .isNotEmpty;
 
-                    return Row(
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: ClipOval(
+                    return InkWell(
+                      onTap: () {
+                        Get.toNamed('/profile');
+                      },
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: ClipOval(
                             child: hasImage
                                 ? Image.file(
                                     File(
@@ -210,6 +214,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                       ],
+                      ),
                     );
                   }),
                   // App Info
