@@ -96,7 +96,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
           expense.date.month == today.month &&
           expense.date.day == today.day;
     }).toList();
-    
+
     return _calculateMonthlyStats(todayExpenses);
   }
 
@@ -105,19 +105,21 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
     final now = DateTime.now();
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
     final endOfWeek = startOfWeek.add(const Duration(days: 6));
-    
+
     final weekExpenses = controller.expenses.where((expense) {
-      return expense.date.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
+      return expense.date.isAfter(
+            startOfWeek.subtract(const Duration(days: 1)),
+          ) &&
           expense.date.isBefore(endOfWeek.add(const Duration(days: 1)));
     }).toList();
-    
+
     return _calculateMonthlyStats(weekExpenses);
   }
 
   // Get expenses based on breakdown type
   List<Expense> _getExpensesByBreakdownType(String breakdownType) {
     final now = DateTime.now();
-    
+
     switch (breakdownType) {
       case 'today':
         return controller.expenses.where((expense) {
@@ -125,15 +127,17 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
               expense.date.month == now.month &&
               expense.date.day == now.day;
         }).toList();
-      
+
       case 'weekly':
         final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
         final endOfWeek = startOfWeek.add(const Duration(days: 6));
         return controller.expenses.where((expense) {
-          return expense.date.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
+          return expense.date.isAfter(
+                startOfWeek.subtract(const Duration(days: 1)),
+              ) &&
               expense.date.isBefore(endOfWeek.add(const Duration(days: 1)));
         }).toList();
-      
+
       case 'monthly':
       default:
         return controller.expenses;
@@ -208,10 +212,10 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
   Future<void> _generatePDFReport(String breakdownType) async {
     try {
       final pdf = pw.Document();
-      
+
       // Get filtered expenses based on breakdown type
       final filteredExpenses = _getExpensesByBreakdownType(breakdownType);
-      final groupedExpenses = breakdownType == 'monthly' 
+      final groupedExpenses = breakdownType == 'monthly'
           ? _groupExpensesByMonth()
           : {_getReportTitle(breakdownType): filteredExpenses};
 
@@ -329,66 +333,70 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                   final totalExp = stats['totalExpense'] as double;
                   final totalInc = stats['totalIncome'] as double;
                   final bal = stats['balance'] as double;
-                final topCategories = stats['topCategories'] as List<String>;
-                final categoryTotals =
-                    stats['categoryTotals'] as Map<String, double>;
+                  final topCategories = stats['topCategories'] as List<String>;
+                  final categoryTotals =
+                      stats['categoryTotals'] as Map<String, double>;
 
-                return pw.Container(
-                  margin: const pw.EdgeInsets.only(bottom: 20),
-                  padding: const pw.EdgeInsets.all(16),
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border.all(color: PdfColors.grey300),
-                    borderRadius: const pw.BorderRadius.all(
-                      pw.Radius.circular(8),
+                  return pw.Container(
+                    margin: const pw.EdgeInsets.only(bottom: 20),
+                    padding: const pw.EdgeInsets.all(16),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.grey300),
+                      borderRadius: const pw.BorderRadius.all(
+                        pw.Radius.circular(8),
+                      ),
                     ),
-                  ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        entry.key,
-                        style: pw.TextStyle(
-                          fontSize: 16,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                      pw.SizedBox(height: 10),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Text('Spent: ${_formatCurrencyForPDF(totalExp)}'),
-                          pw.Text('Income: ${_formatCurrencyForPDF(totalInc)}'),
-                          pw.Text(
-                            'Balance: ${bal >= 0 ? '+' : ''}${_formatCurrencyForPDF(bal)}',
-                          ),
-                        ],
-                      ),
-                      if (topCategories.isNotEmpty) ...[
-                        pw.SizedBox(height: 10),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
                         pw.Text(
-                          'Top Categories:',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          entry.key,
+                          style: pw.TextStyle(
+                            fontSize: 16,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
                         ),
-                        pw.SizedBox(height: 5),
-                        ...topCategories.map((cat) {
-                          final amount = categoryTotals[cat] ?? 0.0;
-                          return pw.Padding(
-                            padding: const pw.EdgeInsets.only(bottom: 3),
-                            child: pw.Row(
-                              mainAxisAlignment:
-                                  pw.MainAxisAlignment.spaceBetween,
-                              children: [
-                                pw.Text('  • $cat'),
-                                pw.Text(_formatCurrencyForPDF(amount)),
-                              ],
+                        pw.SizedBox(height: 10),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text(
+                              'Spent: ${_formatCurrencyForPDF(totalExp)}',
                             ),
-                          );
-                        }).toList(),
+                            pw.Text(
+                              'Income: ${_formatCurrencyForPDF(totalInc)}',
+                            ),
+                            pw.Text(
+                              'Balance: ${bal >= 0 ? '+' : ''}${_formatCurrencyForPDF(bal)}',
+                            ),
+                          ],
+                        ),
+                        if (topCategories.isNotEmpty) ...[
+                          pw.SizedBox(height: 10),
+                          pw.Text(
+                            'Top Categories:',
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.SizedBox(height: 5),
+                          ...topCategories.map((cat) {
+                            final amount = categoryTotals[cat] ?? 0.0;
+                            return pw.Padding(
+                              padding: const pw.EdgeInsets.only(bottom: 3),
+                              child: pw.Row(
+                                mainAxisAlignment:
+                                    pw.MainAxisAlignment.spaceBetween,
+                                children: [
+                                  pw.Text('  • $cat'),
+                                  pw.Text(_formatCurrencyForPDF(amount)),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ],
                       ],
-                    ],
-                  ),
-                );
-              }).toList(),
+                    ),
+                  );
+                }).toList(),
               ],
 
               // Footer
@@ -471,11 +479,11 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
         directory = await getApplicationDocumentsDirectory();
       }
 
-      final filePrefix = breakdownType == 'today' 
-          ? 'Today' 
-          : breakdownType == 'weekly' 
-              ? 'Weekly' 
-              : 'Monthly';
+      final filePrefix = breakdownType == 'today'
+          ? 'Today'
+          : breakdownType == 'weekly'
+          ? 'Weekly'
+          : 'Monthly';
       final fileName =
           'MoneyMate_${filePrefix}_Report_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv';
       final file = File('${directory.path}/$fileName');
@@ -529,7 +537,10 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
               ),
               const Divider(),
               ListTile(
-                leading: const Icon(Icons.calendar_view_week, color: Colors.green),
+                leading: const Icon(
+                  Icons.calendar_view_week,
+                  color: Colors.green,
+                ),
                 title: const Text('Weekly Breakdown'),
                 subtitle: const Text('Download this week\'s report'),
                 onTap: () {
@@ -1053,10 +1064,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                 children: [
                   Text(
                     '💵 Balance',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   Text(
                     '${balance >= 0 ? '+' : ''}${_formatCurrency(balance)}',
@@ -1097,7 +1105,10 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.calendar_view_week, color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  Icons.calendar_view_week,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 const Text(
                   "Weekly Breakdown",
@@ -1143,10 +1154,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                 children: [
                   Text(
                     '💵 Balance',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   Text(
                     '${balance >= 0 ? '+' : ''}${_formatCurrency(balance)}',

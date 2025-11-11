@@ -397,7 +397,8 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         _isPlaying
@@ -454,7 +455,9 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                                   activeColor: Colors.blue,
                                   inactiveColor: Colors.blue.shade200,
                                   onChanged: (value) {
-                                    final position = Duration(seconds: value.toInt());
+                                    final position = Duration(
+                                      seconds: value.toInt(),
+                                    );
                                     _audioPlayer.seek(position);
                                   },
                                 ),

@@ -354,7 +354,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
         // Navigate to home screen and show success message
         Get.offAllNamed('/home');
-        
+
         Get.snackbar(
           'success'.tr,
           _isIncome ? 'income_saved'.tr : 'expense_saved_successfully'.tr,
