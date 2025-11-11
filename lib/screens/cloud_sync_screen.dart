@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/firebase_service.dart';
+import '../controllers/expense_controller.dart';
 import 'firebase_debug_screen.dart';
 
 class CloudSyncScreen extends StatefulWidget {
@@ -67,11 +68,41 @@ class _CloudSyncScreenState extends State<CloudSyncScreen>
         result['message'],
         backgroundColor: Colors.green,
         colorText: Colors.white,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 2),
       );
 
-      // Auto sync after login
-      _handleSync();
+      // Show sync options dialog
+      Get.dialog(
+        AlertDialog(
+          title: const Text('Restore Data?'),
+          content: const Text(
+            'Would you like to sync your data from cloud?\n\n'
+            '• Sync Now: Merge cloud and local data\n'
+            '• Download: Replace local with cloud data\n'
+            '• Skip: Continue without syncing',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text('Skip'),
+            ),
+            TextButton(
+              onPressed: () {
+                Get.back();
+                _handleDownload();
+              },
+              child: const Text('Download'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Get.back();
+                _handleSync();
+              },
+              child: const Text('Sync Now'),
+            ),
+          ],
+        ),
+      );
     } else {
       // Show detailed error
       Get.dialog(
@@ -147,14 +178,38 @@ class _CloudSyncScreenState extends State<CloudSyncScreen>
         result['message'],
         backgroundColor: Colors.green,
         colorText: Colors.white,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 2),
       );
 
-      // Switch to sign in tab
-      _tabController.animateTo(0);
-
-      // Auto upload after signup
-      _handleUpload();
+      // Ask if user wants to upload existing local data
+      Get.dialog(
+        AlertDialog(
+          title: const Text('Backup Local Data?'),
+          content: const Text(
+            'You have a new account!\n\n'
+            'Would you like to backup your existing local data to cloud?\n\n'
+            '• Upload: Backup all local expenses to cloud\n'
+            '• Skip: Start fresh (local data stays on device)',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Get.back();
+                _tabController.animateTo(0); // Go to sign in tab
+              },
+              child: const Text('Skip'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Get.back();
+                _tabController.animateTo(0); // Go to sign in tab
+                _handleUpload();
+              },
+              child: const Text('Upload & Backup'),
+            ),
+          ],
+        ),
+      );
     } else {
       // Show detailed error in dialog for debugging
       Get.dialog(
@@ -232,6 +287,14 @@ class _CloudSyncScreenState extends State<CloudSyncScreen>
     final result = await _firebaseService.syncData();
 
     if (result['success']) {
+      // Refresh ExpenseController to show updated data
+      try {
+        final expenseController = Get.find<ExpenseController>();
+        await expenseController.fetchExpenses();
+      } catch (e) {
+        print('Error refreshing expenses: $e');
+      }
+
       Get.snackbar(
         'Success',
         '${result['message']}\nUploaded: ${result['uploaded']}, Downloaded: ${result['downloaded']}',
@@ -295,6 +358,14 @@ class _CloudSyncScreenState extends State<CloudSyncScreen>
     final result = await _firebaseService.downloadFromCloud();
 
     if (result['success']) {
+      // Refresh ExpenseController to show updated data
+      try {
+        final expenseController = Get.find<ExpenseController>();
+        await expenseController.fetchExpenses();
+      } catch (e) {
+        print('Error refreshing expenses: $e');
+      }
+
       Get.snackbar(
         'Success',
         '${result['message']}\n${result['count']} expenses downloaded',

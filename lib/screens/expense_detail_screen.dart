@@ -109,6 +109,19 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
     if (widget.expense.voiceNotePath == null) return;
 
     try {
+      // Check if file exists
+      final file = File(widget.expense.voiceNotePath!);
+      if (!await file.exists()) {
+        Get.snackbar(
+          'error'.tr,
+          'Voice note file not found. This may happen if data was synced from another device.',
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4),
+        );
+        return;
+      }
+
       if (_isPlaying) {
         await _audioPlayer.stop();
         setState(() {
@@ -502,60 +515,107 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () {
-                          // Show full screen image
-                          showDialog(
-                            context: context,
-                            builder: (context) => Dialog(
-                              backgroundColor: Colors.black,
-                              insetPadding: EdgeInsets.zero,
-                              child: Stack(
+                      FutureBuilder<bool>(
+                        future: File(widget.expense.imagePath!).exists(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+
+                          if (snapshot.data != true) {
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.orange.shade200),
+                              ),
+                              child: Row(
                                 children: [
-                                  Center(
-                                    child: InteractiveViewer(
-                                      minScale: 0.5,
-                                      maxScale: 4.0,
-                                      child: Image.file(
-                                        File(widget.expense.imagePath!),
-                                        fit: BoxFit.contain,
-                                      ),
-                                    ),
+                                  Icon(
+                                    Icons.warning_amber,
+                                    color: Colors.orange,
+                                    size: 32,
                                   ),
-                                  Positioned(
-                                    top: 40,
-                                    right: 16,
-                                    child: IconButton(
-                                      icon: const Icon(
-                                        Icons.close,
-                                        color: Colors.white,
-                                        size: 30,
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'Image file not found. This may happen if data was synced from another device.',
+                                      style: TextStyle(
+                                        color: Colors.orange.shade900,
                                       ),
-                                      onPressed: () => Navigator.pop(context),
                                     ),
                                   ),
                                 ],
                               ),
+                            );
+                          }
+
+                          return GestureDetector(
+                            onTap: () {
+                              // Show full screen image
+                              showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  backgroundColor: Colors.black,
+                                  insetPadding: EdgeInsets.zero,
+                                  child: Stack(
+                                    children: [
+                                      Center(
+                                        child: InteractiveViewer(
+                                          minScale: 0.5,
+                                          maxScale: 4.0,
+                                          child: Image.file(
+                                            File(widget.expense.imagePath!),
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 40,
+                                        right: 16,
+                                        child: IconButton(
+                                          icon: const Icon(
+                                            Icons.close,
+                                            color: Colors.white,
+                                            size: 30,
+                                          ),
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.file(
+                                    File(widget.expense.imagePath!),
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Tap to view full image',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
                             ),
                           );
                         },
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.file(
-                            File(widget.expense.imagePath!),
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tap to view full image',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                          fontStyle: FontStyle.italic,
-                        ),
                       ),
                     ],
                   ),
