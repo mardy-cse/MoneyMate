@@ -19,6 +19,16 @@ class _HomeScreenState extends State<HomeScreen> {
   // GlobalKey to access Scaffold state
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // Search functionality
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   String _formatCurrency(double amount) {
     final currencyService = CurrencyService.instance;
     return currencyService.formatCurrency(amount);
@@ -360,6 +370,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // Get today's expenses reactively
         final todayExpenses = controller.getTodayExpenses();
+
+        // Filter expenses based on search query
+        final filteredExpenses = todayExpenses.where((expense) {
+          if (_searchQuery.isEmpty) return true;
+
+          final query = _searchQuery.toLowerCase();
+          return expense.title.toLowerCase().contains(query) ||
+              expense.category.toLowerCase().contains(query) ||
+              (expense.note?.toLowerCase().contains(query) ?? false) ||
+              expense.amount.toString().contains(query);
+        }).toList();
+
         final todayTotal = controller.totalToday.value;
 
         return Column(
@@ -425,9 +447,46 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
+            // Search Bar
+            if (todayExpenses.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Search expenses...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[800]
+                        : Colors.grey[100],
+                  ),
+                ),
+              ),
+            if (todayExpenses.isNotEmpty) const SizedBox(height: 16),
+
             // Expenses List
             Expanded(
-              child: todayExpenses.isEmpty
+              child: filteredExpenses.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -439,7 +498,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'no_expenses_today'.tr,
+                            _searchQuery.isEmpty
+                                ? 'no_expenses_today'.tr
+                                : 'No expenses found',
                             style: TextStyle(
                               fontSize: 18,
                               color: Colors.grey[600],
@@ -448,7 +509,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'tap_to_add_first_expense'.tr,
+                            _searchQuery.isEmpty
+                                ? 'tap_to_add_first_expense'.tr
+                                : 'Try different search terms',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[500],
@@ -459,9 +522,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: todayExpenses.length,
+                      itemCount: filteredExpenses.length,
                       itemBuilder: (context, index) {
-                        final expense = todayExpenses[index];
+                        final expense = filteredExpenses[index];
                         return Dismissible(
                           key: Key(expense.id.toString()),
                           background: Container(
