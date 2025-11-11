@@ -80,6 +80,53 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return weeklyTotals;
   }
 
+  // Get daily spending totals (last 7 days)
+  Map<String, double> _getDailyTotals() {
+    final now = DateTime.now();
+    final Map<String, double> dailyTotals = {};
+
+    for (int i = 6; i >= 0; i--) {
+      final date = now.subtract(Duration(days: i));
+      final dayKey = DateFormat('EEE').format(date); // Mon, Tue, etc.
+      dailyTotals[dayKey] = 0.0;
+    }
+
+    for (var expense in controller.expenses) {
+      if (expense.amount > 0) {
+        final daysAgo = now.difference(expense.date).inDays;
+        if (daysAgo >= 0 && daysAgo < 7) {
+          final dayKey = DateFormat('EEE').format(expense.date);
+          dailyTotals[dayKey] = (dailyTotals[dayKey] ?? 0) + expense.amount;
+        }
+      }
+    }
+
+    return dailyTotals;
+  }
+
+  // Get monthly spending totals (last 6 months)
+  Map<String, double> _getMonthlyTotals() {
+    final now = DateTime.now();
+    final Map<String, double> monthlyTotals = {};
+
+    for (int i = 5; i >= 0; i--) {
+      final date = DateTime(now.year, now.month - i, 1);
+      final monthKey = DateFormat('MMM').format(date); // Jan, Feb, etc.
+      monthlyTotals[monthKey] = 0.0;
+    }
+
+    for (var expense in controller.expenses) {
+      if (expense.amount > 0) {
+        final monthKey = DateFormat('MMM').format(expense.date);
+        if (monthlyTotals.containsKey(monthKey)) {
+          monthlyTotals[monthKey] = monthlyTotals[monthKey]! + expense.amount;
+        }
+      }
+    }
+
+    return monthlyTotals;
+  }
+
   Color _getCategoryColor(String category) {
     switch (category.toLowerCase()) {
       case 'food':
@@ -307,6 +354,248 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
+  Widget _buildDailyBarChart() {
+    final dailyTotals = _getDailyTotals();
+
+    if (dailyTotals.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.bar_chart, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No expenses to display',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final maxY = dailyTotals.values.isEmpty
+        ? 100.0
+        : dailyTotals.values.reduce((a, b) => a > b ? a : b) * 1.2;
+
+    final sortedEntries = dailyTotals.entries.toList();
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 250,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 16, top: 16),
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: maxY,
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      return BarTooltipItem(
+                        _formatCurrency(rod.toY),
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        if (value.toInt() >= 0 &&
+                            value.toInt() < sortedEntries.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              sortedEntries[value.toInt()].key,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          );
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 40,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          '\$${value.toInt()}',
+                          style: const TextStyle(fontSize: 12),
+                        );
+                      },
+                    ),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxY / 5,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(color: Colors.grey[300], strokeWidth: 1);
+                  },
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: sortedEntries.asMap().entries.map((entry) {
+                  return BarChartGroupData(
+                    x: entry.key,
+                    barRods: [
+                      BarChartRodData(
+                        toY: entry.value.value,
+                        color: Colors.blue,
+                        width: 20,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(6),
+                          topRight: Radius.circular(6),
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMonthlyBarChart() {
+    final monthlyTotals = _getMonthlyTotals();
+
+    if (monthlyTotals.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.bar_chart, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No expenses to display',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final maxY = monthlyTotals.values.isEmpty
+        ? 100.0
+        : monthlyTotals.values.reduce((a, b) => a > b ? a : b) * 1.2;
+
+    final sortedEntries = monthlyTotals.entries.toList();
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 250,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 16, top: 16),
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: maxY,
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      return BarTooltipItem(
+                        _formatCurrency(rod.toY),
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        if (value.toInt() >= 0 &&
+                            value.toInt() < sortedEntries.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              sortedEntries[value.toInt()].key,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          );
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 40,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          '\$${value.toInt()}',
+                          style: const TextStyle(fontSize: 12),
+                        );
+                      },
+                    ),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxY / 5,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(color: Colors.grey[300], strokeWidth: 1);
+                  },
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: sortedEntries.asMap().entries.map((entry) {
+                  return BarChartGroupData(
+                    x: entry.key,
+                    barRods: [
+                      BarChartRodData(
+                        toY: entry.value.value,
+                        color: Colors.orange,
+                        width: 20,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(6),
+                          topRight: Radius.circular(6),
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSummaryCard() {
     final filteredExpenses = _getFilteredExpenses();
     // Only sum expenses (positive amounts), not income
@@ -501,7 +790,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         ),
                       ),
 
-                      // Spending Trend Section
+                      // Daily Spending Section
                       Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
@@ -510,13 +799,50 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             Row(
                               children: [
                                 Icon(
-                                  Icons.bar_chart,
+                                  Icons.calendar_today,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Daily Spending (Last 7 Days)',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: _buildDailyBarChart(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Weekly Spending Section
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_view_week,
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   _selectedPeriod == 'This Week'
-                                      ? 'Daily Spending'
+                                      ? 'Daily Spending (This Week)'
                                       : 'Weekly Spending',
                                   style: const TextStyle(
                                     fontSize: 20,
@@ -534,6 +860,43 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                               child: Padding(
                                 padding: const EdgeInsets.all(16.0),
                                 child: _buildBarChart(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Monthly Spending Section
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_month,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Monthly Spending (Last 6 Months)',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: _buildMonthlyBarChart(),
                               ),
                             ),
                           ],
