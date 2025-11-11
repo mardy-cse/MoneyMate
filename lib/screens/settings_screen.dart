@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_helper.dart';
+import '../services/currency_service.dart';
+import '../services/language_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -202,7 +205,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   String _formatCurrency(double amount) {
-    return '\$${amount.toStringAsFixed(2)}';
+    final currencyService = CurrencyService.instance;
+    return currencyService.formatCurrency(amount);
   }
 
   double _getPercentage(double spent, double budget) {
@@ -353,7 +357,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: GetBuilder<LanguageService>(builder: (_) => Text('settings'.tr)),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
@@ -397,6 +401,138 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     const SizedBox(height: 32),
 
+                    // Language & Currency Section
+                    Text(
+                      'currency'.tr,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          // Language Selection - COMMENTED OUT TEMPORARILY
+                          /* 
+                          ListTile(
+                            leading: Icon(
+                              Icons.language,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            title: Text('language'.tr),
+                            subtitle: Obx(() {
+                              final languageService = LanguageService.instance;
+                              return Text(
+                                languageService.getLanguageName(
+                                  languageService.selectedLanguage.value,
+                                ),
+                              );
+                            }),
+                            trailing: Obx(() {
+                              final languageService = LanguageService.instance;
+                              return DropdownButton<String>(
+                                value: languageService.selectedLanguage.value,
+                                underline: const SizedBox(),
+                                items: languageService.getLanguageCodes().map((
+                                  code,
+                                ) {
+                                  return DropdownMenuItem(
+                                    value: code,
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          languageService.getLanguageFlag(code),
+                                          style: const TextStyle(fontSize: 20),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          languageService.getLanguageName(code),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    languageService.saveLanguage(value);
+                                  }
+                                },
+                              );
+                            }),
+                          ),
+                          const Divider(height: 1),
+                          */
+                          // Currency Selection
+                          ListTile(
+                            leading: Obx(() {
+                              final currencyService = CurrencyService.instance;
+                              return Text(
+                                currencyService.selectedCurrencySymbol.value,
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              );
+                            }),
+                            title: Text('currency'.tr),
+                            subtitle: Obx(() {
+                              final currencyService = CurrencyService.instance;
+                              return Text(
+                                currencyService.getCurrencyName(
+                                  currencyService.selectedCurrency.value,
+                                ),
+                              );
+                            }),
+                            trailing: Obx(() {
+                              final currencyService = CurrencyService.instance;
+                              return DropdownButton<String>(
+                                value: currencyService.selectedCurrency.value,
+                                underline: const SizedBox(),
+                                items: currencyService.getCurrencyCodes().map((
+                                  code,
+                                ) {
+                                  return DropdownMenuItem(
+                                    value: code,
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          currencyService
+                                                  .currencies[code]?['symbol'] ??
+                                              '',
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(code),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (value) async {
+                                  if (value != null) {
+                                    await currencyService.saveCurrency(value);
+                                    // Reload settings to update displayed amounts
+                                    _loadSettings();
+                                  }
+                                },
+                              );
+                            }),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
                     // Budget Settings Section
                     const Text(
                       'Set Budgets',
@@ -419,11 +555,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             // Weekly Budget Input
                             TextField(
                               controller: _weeklyBudgetController,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'Weekly Budget',
                                 hintText: 'Enter weekly budget',
-                                prefixIcon: Icon(Icons.attach_money),
-                                border: OutlineInputBorder(),
+                                prefixIcon: Obx(() {
+                                  final currencyService =
+                                      CurrencyService.instance;
+                                  return Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Text(
+                                      currencyService
+                                          .selectedCurrencySymbol
+                                          .value,
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  );
+                                }),
+                                border: const OutlineInputBorder(),
                               ),
                               keyboardType:
                                   const TextInputType.numberWithOptions(
@@ -440,11 +591,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             // Monthly Budget Input
                             TextField(
                               controller: _monthlyBudgetController,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'Monthly Budget',
                                 hintText: 'Enter monthly budget',
-                                prefixIcon: Icon(Icons.attach_money),
-                                border: OutlineInputBorder(),
+                                prefixIcon: Obx(() {
+                                  final currencyService =
+                                      CurrencyService.instance;
+                                  return Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Text(
+                                      currencyService
+                                          .selectedCurrencySymbol
+                                          .value,
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  );
+                                }),
+                                border: const OutlineInputBorder(),
                               ),
                               keyboardType:
                                   const TextInputType.numberWithOptions(

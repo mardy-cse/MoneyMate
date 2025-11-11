@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import '../models/expense.dart';
 import '../controllers/expense_controller.dart';
+import '../services/currency_service.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -45,8 +46,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final Map<String, double> categoryTotals = {};
 
     for (var expense in filteredExpenses) {
-      categoryTotals[expense.category] =
-          (categoryTotals[expense.category] ?? 0) + expense.amount;
+      // Only include expenses (positive amounts), not income
+      if (expense.amount > 0) {
+        categoryTotals[expense.category] =
+            (categoryTotals[expense.category] ?? 0) + expense.amount;
+      }
     }
 
     return categoryTotals;
@@ -57,17 +61,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final Map<String, double> weeklyTotals = {};
 
     for (var expense in filteredExpenses) {
-      String weekKey;
-      if (_selectedPeriod == 'This Month' ||
-          _selectedPeriod == 'Last 30 Days') {
-        // Group by week
-        final weekNumber = ((expense.date.day - 1) / 7).floor() + 1;
-        weekKey = 'Week $weekNumber';
-      } else {
-        // Group by day for "This Week"
-        weekKey = DateFormat('EEE').format(expense.date);
+      // Only include expenses (positive amounts), not income
+      if (expense.amount > 0) {
+        String weekKey;
+        if (_selectedPeriod == 'This Month' ||
+            _selectedPeriod == 'Last 30 Days') {
+          // Group by week
+          final weekNumber = ((expense.date.day - 1) / 7).floor() + 1;
+          weekKey = 'Week $weekNumber';
+        } else {
+          // Group by day for "This Week"
+          weekKey = DateFormat('EEE').format(expense.date);
+        }
+        weeklyTotals[weekKey] = (weeklyTotals[weekKey] ?? 0) + expense.amount;
       }
-      weeklyTotals[weekKey] = (weeklyTotals[weekKey] ?? 0) + expense.amount;
     }
 
     return weeklyTotals;
@@ -95,7 +102,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   String _formatCurrency(double amount) {
-    return '\$${amount.toStringAsFixed(2)}';
+    final currencyService = CurrencyService.instance;
+    return currencyService.formatCurrency(amount);
   }
 
   Widget _buildPieChart() {
@@ -301,10 +309,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Widget _buildSummaryCard() {
     final filteredExpenses = _getFilteredExpenses();
-    final total = filteredExpenses.fold(
-      0.0,
-      (sum, expense) => sum + expense.amount,
-    );
+    // Only sum expenses (positive amounts), not income
+    final total = filteredExpenses
+        .where((e) => e.amount > 0)
+        .fold(0.0, (sum, expense) => sum + expense.amount);
     final average = filteredExpenses.isEmpty
         ? 0.0
         : total / filteredExpenses.length;

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import '../models/expense.dart';
 import '../controllers/expense_controller.dart';
+import '../services/currency_service.dart';
 
 class ExpenseHistoryScreen extends StatefulWidget {
   const ExpenseHistoryScreen({super.key});
@@ -36,6 +37,9 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
 
     setState(() {
       _filteredExpenses = controller.expenses.where((expense) {
+        // Only show expenses (positive amounts), not income
+        if (expense.amount <= 0) return false;
+
         // Search filter
         bool matchesSearch =
             searchQuery.isEmpty ||
@@ -129,7 +133,8 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
   }
 
   String _formatCurrency(double amount) {
-    return '\$${amount.toStringAsFixed(2)}';
+    final currencyService = CurrencyService.instance;
+    return currencyService.formatCurrency(amount);
   }
 
   String _formatDate(DateTime date) {
@@ -480,11 +485,13 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
                                 ],
                               ),
                               trailing: Text(
-                                _formatCurrency(expense.amount),
+                                _formatCurrency(expense.amount.abs()),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Theme.of(context).colorScheme.primary,
+                                  color: expense.amount > 0
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Colors.green,
                                 ),
                               ),
                             ),

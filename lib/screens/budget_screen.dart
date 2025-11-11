@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../models/budget.dart';
 import '../services/database_helper.dart';
+import '../services/currency_service.dart';
 import '../controllers/expense_controller.dart';
 
 class BudgetScreen extends StatefulWidget {
@@ -42,7 +43,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 
   String _formatCurrency(double amount) {
-    return '${amount.toStringAsFixed(2)} BDT';
+    final currencyService = CurrencyService.instance;
+    return currencyService.formatCurrency(amount);
   }
 
   Color _getProgressColor(double percentage) {
@@ -112,10 +114,22 @@ class _BudgetScreenState extends State<BudgetScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: amountController,
-                decoration: const InputDecoration(
-                  labelText: 'Budget Amount (BDT)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.attach_money),
+                decoration: InputDecoration(
+                  labelText: 'amount'.tr,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: Obx(() {
+                    final currencyService = CurrencyService.instance;
+                    return Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Text(
+                        currencyService.selectedCurrencySymbol.value,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
+                  }),
                 ),
                 keyboardType: TextInputType.number,
                 inputFormatters: [
@@ -203,10 +217,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Target Amount (BDT)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.flag),
+                  decoration: InputDecoration(
+                    labelText: 'target_amount'.tr,
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.flag),
                   ),
                   keyboardType: TextInputType.number,
                   inputFormatters: [
@@ -218,10 +232,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: currentAmountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Current Savings (BDT)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.account_balance_wallet),
+                  decoration: InputDecoration(
+                    labelText: 'current_savings'.tr,
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.account_balance_wallet),
                   ),
                   keyboardType: TextInputType.number,
                   inputFormatters: [
@@ -721,10 +735,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
         title: const Text('Update Progress'),
         content: TextField(
           controller: currentAmountController,
-          decoration: const InputDecoration(
-            labelText: 'Current Amount (BDT)',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.account_balance_wallet),
+          decoration: InputDecoration(
+            labelText: 'current_amount'.tr,
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.account_balance_wallet),
           ),
           keyboardType: TextInputType.number,
           inputFormatters: [

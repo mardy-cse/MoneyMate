@@ -131,7 +131,8 @@ class ExpenseController extends GetxController {
         expense.date.month,
         expense.date.day,
       );
-      return expenseDate.isAtSameMomentAs(today);
+      // Only return actual expenses (positive amounts), not income (negative amounts)
+      return expenseDate.isAtSameMomentAs(today) && expense.amount > 0;
     }).toList();
   }
 
@@ -193,26 +194,24 @@ class ExpenseController extends GetxController {
 
   /// Calculate today's, weekly, and monthly totals
   void _calculateTotals() {
-    // Calculate today's total
+    // Calculate today's total (only expenses, not income)
     final todayExpenses = getTodayExpenses();
     totalToday.value = todayExpenses.fold(
       0.0,
       (sum, expense) => sum + expense.amount,
     );
 
-    // Calculate weekly total
+    // Calculate weekly total (only expenses, not income)
     final weeklyExpenses = getWeeklyExpenses();
-    totalWeekly.value = weeklyExpenses.fold(
-      0.0,
-      (sum, expense) => sum + expense.amount,
-    );
+    totalWeekly.value = weeklyExpenses
+        .where((e) => e.amount > 0)
+        .fold(0.0, (sum, expense) => sum + expense.amount);
 
-    // Calculate monthly total
+    // Calculate monthly total (only expenses, not income)
     final monthlyExpenses = getMonthlyExpenses();
-    totalMonthly.value = monthlyExpenses.fold(
-      0.0,
-      (sum, expense) => sum + expense.amount,
-    );
+    totalMonthly.value = monthlyExpenses
+        .where((e) => e.amount > 0)
+        .fold(0.0, (sum, expense) => sum + expense.amount);
   }
 
   /// Get total expenses for all time

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../controllers/expense_controller.dart';
+import '../services/currency_service.dart';
 import 'budget_screen.dart';
 import 'expense_detail_screen.dart';
 
@@ -9,7 +10,13 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   String _formatCurrency(double amount) {
-    return '\$${amount.toStringAsFixed(2)}';
+    final currencyService = CurrencyService.instance;
+    return currencyService.formatCurrency(amount);
+  }
+
+  String _getCategoryName(String category) {
+    // Return translated category name
+    return category.tr;
   }
 
   IconData _getCategoryIcon(String category) {
@@ -61,7 +68,7 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MoneyMate'),
+        title: Text('app_name'.tr),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
@@ -90,16 +97,16 @@ class HomeScreen extends StatelessWidget {
                     color: Colors.white,
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'MoneyMate',
-                    style: TextStyle(
+                  Text(
+                    'app_name'.tr,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    'Manage your expenses',
+                    'app_tagline'.tr,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.9),
                       fontSize: 14,
@@ -110,7 +117,7 @@ class HomeScreen extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.home),
-              title: const Text('Home'),
+              title: Text('home'.tr),
               onTap: () {
                 Navigator.pop(context);
               },
@@ -118,8 +125,8 @@ class HomeScreen extends StatelessWidget {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.calendar_month),
-              title: const Text('Monthly Summary'),
-              subtitle: const Text('View monthly reports'),
+              title: Text('monthly_summary'.tr),
+              subtitle: Text('view_monthly_reports'.tr),
               onTap: () {
                 Navigator.pop(context);
                 Get.toNamed('/monthly-summary');
@@ -127,8 +134,8 @@ class HomeScreen extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.bar_chart),
-              title: const Text('Analytics'),
-              subtitle: const Text('View spending analytics'),
+              title: Text('analytics'.tr),
+              subtitle: Text('view_spending_analytics'.tr),
               onTap: () {
                 Navigator.pop(context);
                 Get.toNamed('/analytics');
@@ -136,17 +143,26 @@ class HomeScreen extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.history),
-              title: const Text('Expense History'),
-              subtitle: const Text('View all expenses'),
+              title: Text('expense_history'.tr),
+              subtitle: Text('view_all_expenses'.tr),
               onTap: () {
                 Navigator.pop(context);
                 Get.toNamed('/history');
               },
             ),
             ListTile(
+              leading: const Icon(Icons.trending_up),
+              title: Text('income_history'.tr),
+              subtitle: Text('view_all_incomes'.tr),
+              onTap: () {
+                Navigator.pop(context);
+                Get.toNamed('/income-history');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.account_balance_wallet),
-              title: const Text('Budgets & Goals'),
-              subtitle: const Text('Manage budgets & savings'),
+              title: Text('budgets_goals'.tr),
+              subtitle: Text('manage_budgets_savings'.tr),
               onTap: () {
                 Navigator.pop(context);
                 Get.to(() => const BudgetScreen());
@@ -155,8 +171,8 @@ class HomeScreen extends StatelessWidget {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              subtitle: const Text('App settings & budget'),
+              title: Text('settings'.tr),
+              subtitle: Text('app_settings_budget'.tr),
               onTap: () async {
                 Navigator.pop(context);
                 await Get.toNamed('/settings');
@@ -210,7 +226,7 @@ class HomeScreen extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    'Today\'s Expenses',
+                    'todays_expenses'.tr,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.9),
                       fontSize: 16,
@@ -252,7 +268,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No expenses today',
+                            'no_expenses_today'.tr,
                             style: TextStyle(
                               fontSize: 18,
                               color: Colors.grey[600],
@@ -261,7 +277,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Tap + to add your first expense',
+                            'tap_to_add_first_expense'.tr,
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[500],
@@ -321,7 +337,7 @@ class HomeScreen extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      expense.category,
+                                      _getCategoryName(expense.category),
                                       style: TextStyle(
                                         color: Colors.grey[600],
                                         fontSize: 13,
@@ -380,7 +396,7 @@ class HomeScreen extends StatelessWidget {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Voice note attached',
+                                        'voice_note_attached'.tr,
                                         style: TextStyle(
                                           color: Colors.blue[700],
                                           fontSize: 12,
@@ -400,7 +416,7 @@ class HomeScreen extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'Tap for details',
+                                      'tap_for_details'.tr,
                                       style: TextStyle(
                                         color: Colors.grey[400],
                                         fontSize: 11,
@@ -428,7 +444,7 @@ class HomeScreen extends StatelessWidget {
       }),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Get.toNamed('/add-expense'),
-        tooltip: 'Add Expense',
+        tooltip: 'add_expense'.tr,
         child: const Icon(Icons.add),
       ),
     );

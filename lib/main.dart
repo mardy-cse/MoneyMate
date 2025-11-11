@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/add_expense_screen.dart';
 import 'screens/expense_history_screen.dart';
+import 'screens/income_history_screen.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/monthly_summary_screen.dart';
 import 'screens/budget_screen.dart';
 import 'screens/expense_detail_screen.dart';
 import 'services/database_helper.dart';
+import 'services/currency_service.dart';
+import 'services/language_service.dart';
+import 'services/translations.dart';
 import 'controllers/expense_controller.dart';
 
 void main() async {
@@ -18,7 +23,9 @@ void main() async {
   // Initialize the database when the app starts
   await DatabaseHelper().database;
 
-  // Initialize GetX controller
+  // Initialize services
+  Get.put(CurrencyService());
+  Get.put(LanguageService());
   Get.put(ExpenseController());
 
   runApp(const MoneyMateApp());
@@ -32,6 +39,9 @@ class MoneyMateApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'MoneyMate',
       debugShowCheckedModeBanner: false,
+      translations: AppTranslations(),
+      locale: const Locale('en', 'US'),
+      fallbackLocale: const Locale('en', 'US'),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.green,
@@ -39,13 +49,18 @@ class MoneyMateApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      // Initial route
+      // Initial route - Start with splash screen
       initialRoute: '/',
       // Define named routes
       getPages: [
-        GetPage(name: '/', page: () => const HomeScreen()),
+        GetPage(name: '/', page: () => const SplashScreen()),
+        GetPage(name: '/home', page: () => const HomeScreen()),
         GetPage(name: '/add-expense', page: () => const AddExpenseScreen()),
         GetPage(name: '/history', page: () => const ExpenseHistoryScreen()),
+        GetPage(
+          name: '/income-history',
+          page: () => const IncomeHistoryScreen(),
+        ),
         GetPage(name: '/analytics', page: () => const AnalyticsScreen()),
         GetPage(name: '/settings', page: () => const SettingsScreen()),
         GetPage(
@@ -54,8 +69,6 @@ class MoneyMateApp extends StatelessWidget {
         ),
         GetPage(name: '/budget', page: () => const BudgetScreen()),
       ],
-      // Fallback route
-      home: const HomeScreen(),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/expense.dart';
 import '../controllers/expense_controller.dart';
+import '../services/currency_service.dart';
 
 class ExpenseDetailScreen extends StatefulWidget {
   final Expense expense;
@@ -25,7 +26,8 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
   }
 
   String _formatCurrency(double amount) {
-    return '${amount.toStringAsFixed(2)} BDT';
+    final currencyService = CurrencyService.instance;
+    return currencyService.formatCurrency(amount);
   }
 
   IconData _getCategoryIcon(String category) {
@@ -78,7 +80,9 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
         await _audioPlayer.stop();
         setState(() => _isPlaying = false);
       } else {
-        await _audioPlayer.play(DeviceFileSource(widget.expense.voiceNotePath!));
+        await _audioPlayer.play(
+          DeviceFileSource(widget.expense.voiceNotePath!),
+        );
         setState(() => _isPlaying = true);
 
         _audioPlayer.onPlayerComplete.listen((event) {
@@ -87,7 +91,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
       }
     } catch (e) {
       Get.snackbar(
-        'Error',
+        'error'.tr,
         'Failed to play voice note: $e',
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -99,17 +103,17 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Expense'),
-        content: const Text('Are you sure you want to delete this expense?'),
+        title: Text('delete_expense'.tr),
+        content: Text('delete_confirmation'.tr),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text('delete'.tr),
           ),
         ],
       ),
@@ -119,17 +123,17 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
       try {
         final controller = Get.find<ExpenseController>();
         await controller.deleteExpense(widget.expense.id!);
-        
+
         Get.back();
         Get.snackbar(
-          'Deleted',
-          'Expense deleted successfully',
+          'deleted'.tr,
+          'expense_deleted_successfully'.tr,
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );
       } catch (e) {
         Get.snackbar(
-          'Error',
+          'error'.tr,
           'Failed to delete expense: $e',
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -142,7 +146,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Expense Details'),
+        title: Text('expense_details'.tr),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
@@ -173,7 +177,9 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: _getCategoryColor(widget.expense.category).withOpacity(0.3),
+                    color: _getCategoryColor(
+                      widget.expense.category,
+                    ).withOpacity(0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -188,7 +194,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    _formatCurrency(widget.expense.amount),
+                    _formatCurrency(widget.expense.amount.abs()),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 40,
@@ -232,7 +238,9 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                     _buildDetailRow(
                       icon: Icons.calendar_today,
                       label: 'Date',
-                      value: DateFormat('EEEE, MMMM d, yyyy').format(widget.expense.date),
+                      value: DateFormat(
+                        'EEEE, MMMM d, yyyy',
+                      ).format(widget.expense.date),
                     ),
                     const SizedBox(height: 12),
                     _buildDetailRow(
@@ -339,14 +347,18 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                         child: Row(
                           children: [
                             Icon(
-                              _isPlaying ? Icons.stop_circle : Icons.play_circle,
+                              _isPlaying
+                                  ? Icons.stop_circle
+                                  : Icons.play_circle,
                               color: Colors.blue,
                               size: 32,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                _isPlaying ? 'Playing...' : 'Tap to play voice note',
+                                _isPlaying
+                                    ? 'Playing...'
+                                    : 'Tap to play voice note',
                                 style: TextStyle(
                                   color: Colors.blue.shade700,
                                   fontWeight: FontWeight.w500,
@@ -387,11 +399,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: Colors.grey[600],
-        ),
+        Icon(icon, size: 20, color: Colors.grey[600]),
         const SizedBox(width: 12),
         Expanded(
           child: Column(

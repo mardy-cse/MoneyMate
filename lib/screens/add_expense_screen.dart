@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../models/expense.dart';
 import '../controllers/expense_controller.dart';
+import '../services/currency_service.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -25,6 +26,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   String _selectedCategory = 'Food';
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = false;
+  bool _isIncome = false; // New: Track if this is income or expense
 
   // Voice recording
   final FlutterSoundRecorder _audioRecorder = FlutterSoundRecorder();
@@ -36,19 +38,30 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   bool _recorderInitialized = false;
 
   final List<String> _categories = [
-    'Food',
-    'Transport',
-    'Bills',
-    'Entertainment',
-    'Shopping',
-    'Healthcare',
-    'Education',
-    'Other',
+    'food',
+    'transport',
+    'bills',
+    'entertainment',
+    'shopping',
+    'healthcare',
+    'education',
+    'other',
+  ];
+
+  final List<String> _incomeCategories = [
+    'salary',
+    'business',
+    'investment',
+    'freelance',
+    'gift',
+    'bonus',
+    'other_income',
   ];
 
   @override
   void initState() {
     super.initState();
+    _selectedCategory = _categories[0];
     _initRecorder();
   }
 
@@ -79,7 +92,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   Future<void> _startRecording() async {
     if (!_recorderInitialized) {
       Get.snackbar(
-        'Error',
+        'error'.tr,
         'Recorder not initialized',
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -90,7 +103,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     try {
       if (await _checkMicrophonePermission()) {
         final directory = await getApplicationDocumentsDirectory();
-        final filePath = '${directory.path}/voice_note_${DateTime.now().millisecondsSinceEpoch}.aac';
+        final filePath =
+            '${directory.path}/voice_note_${DateTime.now().millisecondsSinceEpoch}.aac';
 
         await _audioRecorder.startRecorder(
           toFile: filePath,
@@ -138,7 +152,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       setState(() {
         _isRecording = false;
       });
-      
+
       Get.snackbar(
         'Success',
         'Voice note recorded successfully',
@@ -191,7 +205,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           _voiceNotePath = null;
           _recordDuration = Duration.zero;
         });
-        
+
         Get.snackbar(
           'Deleted',
           'Voice note deleted',
@@ -239,10 +253,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       try {
         final controller = Get.find<ExpenseController>();
 
+        // Parse amount and make it negative if it's income
+        double amount = double.parse(_amountController.text.trim());
+        if (_isIncome) {
+          amount = -amount.abs(); // Negative for income
+        }
+
         // Create Expense object
         final expense = Expense(
           title: _titleController.text.trim(),
-          amount: double.parse(_amountController.text.trim()),
+          amount: amount,
           category: _selectedCategory,
           date: _selectedDate,
           note: _noteController.text.trim().isEmpty
@@ -258,10 +278,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Expense saved successfully!'),
+          SnackBar(
+            content: Text(
+              _isIncome ? 'income_saved'.tr : 'expense_saved_successfully'.tr,
+            ),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
 
@@ -273,7 +295,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error saving expense: $e'),
+            content: Text(
+              '${_isIncome ? 'error_saving_income' : 'error_saving_expense'}: $e',
+            ),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
@@ -292,7 +316,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Expense'),
+        title: Text(_isIncome ? 'add_income'.tr : 'add_expense'.tr),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
@@ -303,19 +327,117 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Income/Expense Toggle
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isIncome = false;
+                            _selectedCategory = _categories[0];
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: !_isIncome
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.arrow_downward,
+                                color: !_isIncome
+                                    ? Colors.white
+                                    : Theme.of(context).colorScheme.onSurface,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'expense'.tr,
+                                style: TextStyle(
+                                  color: !_isIncome
+                                      ? Colors.white
+                                      : Theme.of(context).colorScheme.onSurface,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isIncome = true;
+                            _selectedCategory = _incomeCategories[0];
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _isIncome
+                                ? Colors.green
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.arrow_upward,
+                                color: _isIncome
+                                    ? Colors.white
+                                    : Theme.of(context).colorScheme.onSurface,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'income'.tr,
+                                style: TextStyle(
+                                  color: _isIncome
+                                      ? Colors.white
+                                      : Theme.of(context).colorScheme.onSurface,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
               // Title Field
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  hintText: 'Enter expense title',
-                  prefixIcon: Icon(Icons.title),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'title'.tr,
+                  hintText: 'enter_expense_title'.tr,
+                  prefixIcon: const Icon(Icons.title),
+                  border: const OutlineInputBorder(),
                 ),
                 textCapitalization: TextCapitalization.sentences,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a title';
+                    return 'please_enter_title'.tr;
                   }
                   return null;
                 },
@@ -325,11 +447,23 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               // Amount Field
               TextFormField(
                 controller: _amountController,
-                decoration: const InputDecoration(
-                  labelText: 'Amount',
-                  hintText: 'Enter amount',
-                  prefixIcon: Icon(Icons.attach_money),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'amount'.tr,
+                  hintText: 'enter_amount'.tr,
+                  prefixIcon: Obx(() {
+                    final currencyService = CurrencyService.instance;
+                    return Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Text(
+                        currencyService.selectedCurrencySymbol.value,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
+                  }),
+                  border: const OutlineInputBorder(),
                 ),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
@@ -339,11 +473,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ],
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Please enter an amount';
+                    return 'please_enter_amount'.tr;
                   }
                   final amount = double.tryParse(value.trim());
                   if (amount == null || amount <= 0) {
-                    return 'Please enter a valid amount greater than 0';
+                    return 'valid_amount_required'.tr;
                   }
                   return null;
                 },
@@ -353,15 +487,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               // Category Dropdown
               DropdownButtonFormField<String>(
                 value: _selectedCategory,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  prefixIcon: Icon(Icons.category),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'category'.tr,
+                  prefixIcon: const Icon(Icons.category),
+                  border: const OutlineInputBorder(),
                 ),
-                items: _categories.map((String category) {
+                items: (_isIncome ? _incomeCategories : _categories).map((
+                  String category,
+                ) {
                   return DropdownMenuItem<String>(
                     value: category,
-                    child: Text(category),
+                    child: Text(category.tr),
                   );
                 }).toList(),
                 onChanged: (String? newValue) {
@@ -378,10 +514,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               InkWell(
                 onTap: () => _selectDate(context),
                 child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Date',
-                    prefixIcon: Icon(Icons.calendar_today),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: 'date'.tr,
+                    prefixIcon: const Icon(Icons.calendar_today),
+                    border: const OutlineInputBorder(),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -400,11 +536,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               // Note Field (Optional)
               TextFormField(
                 controller: _noteController,
-                decoration: const InputDecoration(
-                  labelText: 'Note (Optional)',
-                  hintText: 'Add additional notes',
-                  prefixIcon: Icon(Icons.note),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'note_optional'.tr,
+                  hintText: 'add_additional_notes'.tr,
+                  prefixIcon: const Icon(Icons.note),
+                  border: const OutlineInputBorder(),
                 ),
                 maxLines: 3,
                 textCapitalization: TextCapitalization.sentences,
@@ -426,9 +562,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       children: [
                         Icon(Icons.mic, color: Theme.of(context).primaryColor),
                         const SizedBox(width: 8),
-                        const Text(
-                          'Voice Note (Optional)',
-                          style: TextStyle(
+                        Text(
+                          'voice_note_optional'.tr,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                           ),
@@ -436,12 +572,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    
+
                     if (_voiceNotePath == null && !_isRecording)
                       ElevatedButton.icon(
                         onPressed: _startRecording,
                         icon: const Icon(Icons.mic),
-                        label: const Text('Record Voice Note'),
+                        label: Text('record_voice_note'.tr),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           foregroundColor: Colors.white,
@@ -463,7 +599,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Recording... ${_formatDuration(_recordDuration)}',
+                                '${'recording'.tr}... ${_formatDuration(_recordDuration)}',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -476,7 +612,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           ElevatedButton.icon(
                             onPressed: _stopRecording,
                             icon: const Icon(Icons.stop),
-                            label: const Text('Stop Recording'),
+                            label: Text('stop_recording'.tr),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.red,
                               foregroundColor: Colors.white,
@@ -496,18 +632,24 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.check_circle, color: Colors.green.shade700),
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green.shade700,
+                                ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        'Voice note recorded',
-                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      Text(
+                                        'voice_note_recorded'.tr,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                       Text(
-                                        'Duration: ${_formatDuration(_recordDuration)}',
+                                        '${'duration'.tr}: ${_formatDuration(_recordDuration)}',
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey.shade600,
@@ -525,8 +667,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             children: [
                               ElevatedButton.icon(
                                 onPressed: _playVoiceNote,
-                                icon: Icon(_isPlaying ? Icons.stop : Icons.play_arrow),
-                                label: Text(_isPlaying ? 'Stop' : 'Play'),
+                                icon: Icon(
+                                  _isPlaying ? Icons.stop : Icons.play_arrow,
+                                ),
+                                label: Text(_isPlaying ? 'stop'.tr : 'play'.tr),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue,
                                   foregroundColor: Colors.white,
@@ -535,7 +679,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                               ElevatedButton.icon(
                                 onPressed: _deleteVoiceNote,
                                 icon: const Icon(Icons.delete),
-                                label: const Text('Delete'),
+                                label: Text('delete'.tr),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.red,
                                   foregroundColor: Colors.white,
@@ -565,9 +709,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text(
-                        'Save Expense',
-                        style: TextStyle(fontSize: 16),
+                    : Text(
+                        'save_expense'.tr,
+                        style: const TextStyle(fontSize: 16),
                       ),
               ),
             ],

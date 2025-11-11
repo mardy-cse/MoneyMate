@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:csv/csv.dart';
 import '../models/expense.dart';
 import '../controllers/expense_controller.dart';
+import '../services/currency_service.dart';
 
 class MonthlySummaryScreen extends StatefulWidget {
   const MonthlySummaryScreen({super.key});
@@ -54,17 +55,19 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
     Map<String, double> categoryTotals = {};
 
     for (var expense in expenses) {
-      if (expense.amount >= 0) {
+      if (expense.amount > 0) {
+        // Positive amount = Expense
         totalExpense += expense.amount;
+        categoryTotals[expense.category] =
+            (categoryTotals[expense.category] ?? 0) + expense.amount;
       } else {
+        // Negative amount = Income
         totalIncome += expense.amount.abs();
+        // Don't add income to category totals for expense breakdown
       }
-
-      categoryTotals[expense.category] =
-          (categoryTotals[expense.category] ?? 0) + expense.amount;
     }
 
-    // Get top 3 categories by spending
+    // Get top 3 expense categories by spending (exclude income categories)
     final sortedCategories = categoryTotals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -76,12 +79,20 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
       'balance': totalIncome - totalExpense,
       'topCategories': top3Categories,
       'categoryTotals': categoryTotals,
-      'expenseCount': expenses.length,
+      'expenseCount': expenses.where((e) => e.amount > 0).length,
     };
   }
 
   String _formatCurrency(double amount) {
-    return '${amount.toStringAsFixed(2)} BDT';
+    final currencyService = CurrencyService.instance;
+    return currencyService.formatCurrency(amount);
+  }
+
+  // PDF-friendly currency format without Unicode symbols
+  String _formatCurrencyForPDF(double amount) {
+    final currencyService = CurrencyService.instance;
+    final currencyCode = currencyService.selectedCurrency.value;
+    return '${amount.toStringAsFixed(2)} $currencyCode';
   }
 
   Color _getCategoryColor(String category) {
@@ -192,7 +203,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                       children: [
                         pw.Text('Total Spent:'),
                         pw.Text(
-                          _formatCurrency(totalExpense),
+                          _formatCurrencyForPDF(totalExpense),
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                         ),
                       ],
@@ -203,7 +214,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                       children: [
                         pw.Text('Total Income:'),
                         pw.Text(
-                          _formatCurrency(totalIncome),
+                          _formatCurrencyForPDF(totalIncome),
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                         ),
                       ],
@@ -218,7 +229,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                         ),
                         pw.Text(
-                          '${balance >= 0 ? '+' : ''}${_formatCurrency(balance)}',
+                          '${balance >= 0 ? '+' : ''}${_formatCurrencyForPDF(balance)}',
                           style: pw.TextStyle(
                             fontWeight: pw.FontWeight.bold,
                             fontSize: 16,
@@ -274,10 +285,10 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
-                          pw.Text('Spent: ${_formatCurrency(totalExp)}'),
-                          pw.Text('Income: ${_formatCurrency(totalInc)}'),
+                          pw.Text('Spent: ${_formatCurrencyForPDF(totalExp)}'),
+                          pw.Text('Income: ${_formatCurrencyForPDF(totalInc)}'),
                           pw.Text(
-                            'Balance: ${bal >= 0 ? '+' : ''}${_formatCurrency(bal)}',
+                            'Balance: ${bal >= 0 ? '+' : ''}${_formatCurrencyForPDF(bal)}',
                           ),
                         ],
                       ),
@@ -297,7 +308,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                                   pw.MainAxisAlignment.spaceBetween,
                               children: [
                                 pw.Text('  • $cat'),
-                                pw.Text(_formatCurrency(amount)),
+                                pw.Text(_formatCurrencyForPDF(amount)),
                               ],
                             ),
                           );
@@ -370,7 +381,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
           DateFormat('yyyy-MM-dd').format(expense.date),
           expense.title,
           expense.category,
-          expense.amount.toStringAsFixed(2),
+          expense.amount.abs().toStringAsFixed(2),
           expense.note ?? '',
         ]);
       }
