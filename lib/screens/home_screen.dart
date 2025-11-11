@@ -280,8 +280,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.calendar_month),
-                    title: Text('monthly_summary'.tr),
-                    subtitle: Text('view_monthly_reports'.tr),
+                    title: Text('summary'.tr),
+                    subtitle: Text('view_summary'.tr),
                     onTap: () async {
                       Navigator.pop(context);
                       await Get.toNamed('/monthly-summary');

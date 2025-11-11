@@ -58,17 +58,10 @@ class ExpenseController extends GetxController {
       expenses.insert(0, newExpense); // Add to beginning of list
       _calculateTotals();
 
-      Get.snackbar(
-        'Success',
-        'Expense added successfully!',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      // No snackbar here - let the screen handle UI feedback
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to add expense: $e',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      // Just rethrow the error, let the screen handle it
+      rethrow;
     }
   }
 

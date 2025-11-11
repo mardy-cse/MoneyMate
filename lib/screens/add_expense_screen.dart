@@ -307,6 +307,18 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   Future<void> _saveExpense() async {
+    // Check if recording is in progress
+    if (_isRecording) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('stop_recording_first'.tr),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
@@ -340,33 +352,26 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         // Refresh expenses list for real-time update
         await controller.fetchExpenses();
 
-        if (!mounted) return;
-
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isIncome ? 'income_saved'.tr : 'expense_saved_successfully'.tr,
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
+        // Navigate to home screen and show success message
+        Get.offAllNamed('/home');
+        
+        Get.snackbar(
+          'success'.tr,
+          _isIncome ? 'income_saved'.tr : 'expense_saved_successfully'.tr,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 2),
         );
-
-        // Navigate back using GetX
-        Get.back();
       } catch (e) {
-        if (!mounted) return;
-
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${_isIncome ? 'error_saving_income' : 'error_saving_expense'}: $e',
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+        // Show error message using GetX
+        Get.snackbar(
+          'error'.tr,
+          '${_isIncome ? 'error_saving_income'.tr : 'error_saving_expense'.tr}: $e',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 3),
         );
       } finally {
         if (mounted) {

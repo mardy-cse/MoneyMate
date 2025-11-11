@@ -19,6 +19,38 @@ class ExpenseDetailScreen extends StatefulWidget {
 class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isPlaying = false;
+  Duration _currentPosition = Duration.zero;
+  Duration _totalDuration = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupAudioPlayer();
+  }
+
+  void _setupAudioPlayer() {
+    // Listen to position changes
+    _audioPlayer.onPositionChanged.listen((position) {
+      setState(() {
+        _currentPosition = position;
+      });
+    });
+
+    // Listen to duration changes
+    _audioPlayer.onDurationChanged.listen((duration) {
+      setState(() {
+        _totalDuration = duration;
+      });
+    });
+
+    // Listen to completion
+    _audioPlayer.onPlayerComplete.listen((event) {
+      setState(() {
+        _isPlaying = false;
+        _currentPosition = Duration.zero;
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -79,16 +111,15 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
     try {
       if (_isPlaying) {
         await _audioPlayer.stop();
-        setState(() => _isPlaying = false);
+        setState(() {
+          _isPlaying = false;
+          _currentPosition = Duration.zero;
+        });
       } else {
         await _audioPlayer.play(
           DeviceFileSource(widget.expense.voiceNotePath!),
         );
         setState(() => _isPlaying = true);
-
-        _audioPlayer.onPlayerComplete.listen((event) {
-          setState(() => _isPlaying = false);
-        });
       }
     } catch (e) {
       Get.snackbar(
@@ -98,6 +129,13 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
         colorText: Colors.white,
       );
     }
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
   }
 
   Future<void> _deleteExpense() async {
@@ -345,37 +383,83 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.blue.shade200),
                         ),
-                        child: Row(
+                        child: Column(
                           children: [
-                            Icon(
-                              _isPlaying
-                                  ? Icons.stop_circle
-                                  : Icons.play_circle,
-                              color: Colors.blue,
-                              size: 32,
+                            Row(
+                              children: [
+                                Icon(
+                                  _isPlaying
+                                      ? Icons.stop_circle
+                                      : Icons.play_circle,
+                                  color: Colors.blue,
+                                  size: 32,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _isPlaying
+                                            ? 'Playing...'
+                                            : 'Tap to play voice note',
+                                        style: TextStyle(
+                                          color: Colors.blue.shade700,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      if (_totalDuration.inSeconds > 0) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _isPlaying
+                                              ? '${_formatDuration(_currentPosition)} / ${_formatDuration(_totalDuration)}'
+                                              : 'Duration: ${_formatDuration(_totalDuration)}',
+                                          style: TextStyle(
+                                            color: Colors.blue.shade600,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    _isPlaying ? Icons.stop : Icons.play_arrow,
+                                    color: Colors.white,
+                                  ),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                  ),
+                                  onPressed: _playVoiceNote,
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _isPlaying
-                                    ? 'Playing...'
-                                    : 'Tap to play voice note',
-                                style: TextStyle(
-                                  color: Colors.blue.shade700,
-                                  fontWeight: FontWeight.w500,
+                            // Timeline slider (only show when playing)
+                            if (_isPlaying && _totalDuration.inSeconds > 0) ...[
+                              const SizedBox(height: 8),
+                              SliderTheme(
+                                data: SliderThemeData(
+                                  trackHeight: 2,
+                                  thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 6,
+                                  ),
+                                  overlayShape: const RoundSliderOverlayShape(
+                                    overlayRadius: 12,
+                                  ),
+                                ),
+                                child: Slider(
+                                  value: _currentPosition.inSeconds.toDouble(),
+                                  max: _totalDuration.inSeconds.toDouble(),
+                                  activeColor: Colors.blue,
+                                  inactiveColor: Colors.blue.shade200,
+                                  onChanged: (value) {
+                                    final position = Duration(seconds: value.toInt());
+                                    _audioPlayer.seek(position);
+                                  },
                                 ),
                               ),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                _isPlaying ? Icons.stop : Icons.play_arrow,
-                                color: Colors.white,
-                              ),
-                              style: IconButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                              ),
-                              onPressed: _playVoiceNote,
-                            ),
+                            ],
                           ],
                         ),
                       ),

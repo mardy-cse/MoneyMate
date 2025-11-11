@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../models/expense.dart';
 import '../controllers/expense_controller.dart';
 import '../services/currency_service.dart';
+import 'expense_detail_screen.dart';
 
 class ExpenseHistoryScreen extends StatefulWidget {
   const ExpenseHistoryScreen({super.key});
@@ -387,6 +388,12 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
                                 horizontal: 16,
                                 vertical: 8,
                               ),
+                              onTap: () {
+                                Get.to(
+                                  () => ExpenseDetailScreen(expense: expense),
+                                  transition: Transition.rightToLeft,
+                                );
+                              },
                               leading: CircleAvatar(
                                 backgroundColor: _getCategoryColor(
                                   expense.category,

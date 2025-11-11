@@ -41,6 +41,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
       );
+
+      // Navigate back after saving
+      Get.back();
     }
   }
 

@@ -10,6 +10,8 @@ class AppTranslations extends Translations {
 
       // Navigation
       'home': 'Home',
+      'summary': 'Summary',
+      'view_summary': 'View reports and analytics',
       'monthly_summary': 'Monthly Summary',
       'view_monthly_reports': 'View monthly reports',
       'analytics': 'Analytics',
@@ -62,6 +64,7 @@ class AppTranslations extends Translations {
       'save_expense': 'Save Expense',
       'expense_saved_successfully': 'Expense saved successfully!',
       'error_saving_expense': 'Error saving expense',
+      'stop_recording_first': 'Please stop recording before saving',
       'image_memo_optional': 'Image Memo (Optional)',
       'add_image': 'Add Image',
       'change_image': 'Change Image',
@@ -214,6 +217,8 @@ class AppTranslations extends Translations {
 
       // Navigation
       'home': 'হোম',
+      'summary': 'সারসংক্ষেপ',
+      'view_summary': 'রিপোর্ট এবং বিশ্লেষণ দেখুন',
       'monthly_summary': 'মাসিক সারসংক্ষেপ',
       'view_monthly_reports': 'মাসিক রিপোর্ট দেখুন',
       'analytics': 'বিশ্লেষণ',
@@ -264,6 +269,7 @@ class AppTranslations extends Translations {
       'play': 'চালান',
       'stop': 'বন্ধ করুন',
       'delete': 'মুছুন',
+      'stop_recording_first': 'সংরক্ষণ করার আগে রেকর্ডিং বন্ধ করুন',
       'image_memo_optional': 'ছবি মেমো (ঐচ্ছিক)',
       'add_image': 'ছবি যোগ করুন',
       'change_image': 'ছবি পরিবর্তন করুন',

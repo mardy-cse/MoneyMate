@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../models/expense.dart';
 import '../controllers/expense_controller.dart';
 import '../services/currency_service.dart';
+import 'expense_detail_screen.dart';
 
 class IncomeHistoryScreen extends StatefulWidget {
   const IncomeHistoryScreen({super.key});
@@ -95,32 +96,6 @@ class _IncomeHistoryScreenState extends State<IncomeHistoryScreen> {
       _endDate = null;
     });
     _filterIncomes();
-  }
-
-  Future<void> _deleteIncome(Expense income) async {
-    try {
-      await controller.deleteExpense(income.id!);
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${income.title} deleted'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      _filterIncomes();
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error deleting income: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 
   String _formatCurrency(double amount) {
@@ -325,170 +300,173 @@ class _IncomeHistoryScreenState extends State<IncomeHistoryScreen> {
                       itemBuilder: (context, index) {
                         final income = _filteredIncomes[index];
 
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        return Dismissible(
+                          key: Key(income.id.toString()),
+                          background: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            child: const Icon(
+                              Icons.delete,
+                              color: Colors.white,
+                              size: 32,
+                            ),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Header Row: Avatar, Title, Amount
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    CircleAvatar(
-                                      backgroundColor: _getCategoryColor(
-                                        income.category,
-                                      ).withOpacity(0.2),
-                                      child: Icon(
-                                        _getCategoryIcon(income.category),
-                                        color: _getCategoryColor(
+                          direction: DismissDirection.endToStart,
+                          confirmDismiss: (direction) async {
+                            return await showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text('Delete Income'),
+                                  content: Text(
+                                    'Are you sure you want to delete "${income.title}"?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(false),
+                                      child: const Text('CANCEL'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(true),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Colors.red,
+                                      ),
+                                      child: const Text('DELETE'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                          onDismissed: (direction) async {
+                            await controller.deleteExpense(income.id!);
+                            _filterIncomes();
+                          },
+                          child: Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                Get.to(
+                                  () => ExpenseDetailScreen(expense: income),
+                                  transition: Transition.rightToLeft,
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Header Row: Avatar, Title, Amount
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      CircleAvatar(
+                                        backgroundColor: _getCategoryColor(
                                           income.category,
+                                        ).withOpacity(0.2),
+                                        child: Icon(
+                                          _getCategoryIcon(income.category),
+                                          color: _getCategoryColor(
+                                            income.category,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            income.title,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              income.title,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                Icons.category,
-                                                size: 14,
-                                                color: Colors.grey.shade600,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                income.category.tr,
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey.shade700,
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.category,
+                                                  size: 14,
+                                                  color: Colors.grey.shade600,
                                                 ),
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Icon(
-                                                Icons.calendar_today,
-                                                size: 14,
-                                                color: Colors.grey.shade600,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Expanded(
-                                                child: Text(
-                                                  _formatDate(income.date),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  income.category.tr,
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     color: Colors.grey.shade700,
                                                   ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
                                                 ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      _formatCurrency(income.amount.abs()),
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: Colors.green,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                // Note if available
-                                if (income.note != null &&
-                                    income.note!.isNotEmpty) ...[
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    income.note!,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                ],
-                                // Delete button
-                                const SizedBox(height: 8),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton.icon(
-                                    onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: Text('delete_income'.tr),
-                                          content: Text(
-                                            'Are you sure you want to delete "${income.title}"?',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
-                                              child: Text('cancel'.tr),
-                                            ),
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                                _deleteIncome(income);
-                                              },
-                                              child: Text(
-                                                'delete'.tr,
-                                                style: const TextStyle(
-                                                  color: Colors.red,
+                                                const SizedBox(width: 12),
+                                                Icon(
+                                                  Icons.calendar_today,
+                                                  size: 14,
+                                                  color: Colors.grey.shade600,
                                                 ),
-                                              ),
+                                                const SizedBox(width: 4),
+                                                Expanded(
+                                                  child: Text(
+                                                    _formatDate(income.date),
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color:
+                                                          Colors.grey.shade700,
+                                                    ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ],
                                         ),
-                                      );
-                                    },
-                                    icon: const Icon(
-                                      Icons.delete,
-                                      size: 18,
-                                      color: Colors.red,
-                                    ),
-                                    label: Text(
-                                      'delete'.tr,
-                                      style: const TextStyle(
-                                        color: Colors.red,
-                                        fontSize: 12,
                                       ),
-                                    ),
-                                    style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _formatCurrency(income.amount.abs()),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: Colors.green,
+                                        ),
                                       ),
-                                      minimumSize: Size.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                    ),
+                                    ],
                                   ),
-                                ),
-                              ],
+                                  // Note if available
+                                  if (income.note != null &&
+                                      income.note!.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      income.note!,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
                             ),
                           ),
                         );

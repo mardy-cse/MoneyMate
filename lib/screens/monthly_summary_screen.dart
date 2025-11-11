@@ -88,6 +88,71 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
     return currencyService.formatCurrency(amount);
   }
 
+  // Calculate today's statistics
+  Map<String, dynamic> _calculateTodayStats() {
+    final today = DateTime.now();
+    final todayExpenses = controller.expenses.where((expense) {
+      return expense.date.year == today.year &&
+          expense.date.month == today.month &&
+          expense.date.day == today.day;
+    }).toList();
+    
+    return _calculateMonthlyStats(todayExpenses);
+  }
+
+  // Calculate this week's statistics
+  Map<String, dynamic> _calculateWeeklyStats() {
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final endOfWeek = startOfWeek.add(const Duration(days: 6));
+    
+    final weekExpenses = controller.expenses.where((expense) {
+      return expense.date.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
+          expense.date.isBefore(endOfWeek.add(const Duration(days: 1)));
+    }).toList();
+    
+    return _calculateMonthlyStats(weekExpenses);
+  }
+
+  // Get expenses based on breakdown type
+  List<Expense> _getExpensesByBreakdownType(String breakdownType) {
+    final now = DateTime.now();
+    
+    switch (breakdownType) {
+      case 'today':
+        return controller.expenses.where((expense) {
+          return expense.date.year == now.year &&
+              expense.date.month == now.month &&
+              expense.date.day == now.day;
+        }).toList();
+      
+      case 'weekly':
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        final endOfWeek = startOfWeek.add(const Duration(days: 6));
+        return controller.expenses.where((expense) {
+          return expense.date.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
+              expense.date.isBefore(endOfWeek.add(const Duration(days: 1)));
+        }).toList();
+      
+      case 'monthly':
+      default:
+        return controller.expenses;
+    }
+  }
+
+  // Get title based on breakdown type
+  String _getReportTitle(String breakdownType) {
+    switch (breakdownType) {
+      case 'today':
+        return "Today's Summary Report";
+      case 'weekly':
+        return "Weekly Summary Report";
+      case 'monthly':
+      default:
+        return 'Monthly Summary Report';
+    }
+  }
+
   // PDF-friendly currency format without Unicode symbols
   String _formatCurrencyForPDF(double amount) {
     final currencyService = CurrencyService.instance;
@@ -140,16 +205,21 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
   }
 
   // Download Methods
-  Future<void> _generatePDFReport() async {
+  Future<void> _generatePDFReport(String breakdownType) async {
     try {
       final pdf = pw.Document();
-      final groupedExpenses = _groupExpensesByMonth();
+      
+      // Get filtered expenses based on breakdown type
+      final filteredExpenses = _getExpensesByBreakdownType(breakdownType);
+      final groupedExpenses = breakdownType == 'monthly' 
+          ? _groupExpensesByMonth()
+          : {_getReportTitle(breakdownType): filteredExpenses};
 
       // Calculate overall stats
       double totalExpense = 0.0;
       double totalIncome = 0.0;
 
-      for (var expense in controller.expenses) {
+      for (var expense in filteredExpenses) {
         if (expense.amount >= 0) {
           totalExpense += expense.amount;
         } else {
@@ -169,7 +239,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
               pw.Header(
                 level: 0,
                 child: pw.Text(
-                  'Monthly Summary Report',
+                  _getReportTitle(breakdownType),
                   style: pw.TextStyle(
                     fontSize: 24,
                     fontWeight: pw.FontWeight.bold,
@@ -242,22 +312,23 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
               ),
               pw.SizedBox(height: 30),
 
-              // Monthly Breakdown
-              pw.Text(
-                'Monthly Breakdown',
-                style: pw.TextStyle(
-                  fontSize: 20,
-                  fontWeight: pw.FontWeight.bold,
+              // Monthly Breakdown (only for monthly reports)
+              if (breakdownType == 'monthly') ...[
+                pw.Text(
+                  'Monthly Breakdown',
+                  style: pw.TextStyle(
+                    fontSize: 20,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
                 ),
-              ),
-              pw.SizedBox(height: 15),
+                pw.SizedBox(height: 15),
 
-              // Add each month's data
-              ...groupedExpenses.entries.map((entry) {
-                final stats = _calculateMonthlyStats(entry.value);
-                final totalExp = stats['totalExpense'] as double;
-                final totalInc = stats['totalIncome'] as double;
-                final bal = stats['balance'] as double;
+                // Add each month's data
+                ...groupedExpenses.entries.map((entry) {
+                  final stats = _calculateMonthlyStats(entry.value);
+                  final totalExp = stats['totalExpense'] as double;
+                  final totalInc = stats['totalIncome'] as double;
+                  final bal = stats['balance'] as double;
                 final topCategories = stats['topCategories'] as List<String>;
                 final categoryTotals =
                     stats['categoryTotals'] as Map<String, double>;
@@ -318,6 +389,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                   ),
                 );
               }).toList(),
+              ],
 
               // Footer
               pw.SizedBox(height: 20),
@@ -355,7 +427,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
     }
   }
 
-  Future<void> _generateCSVReport() async {
+  Future<void> _generateCSVReport(String breakdownType) async {
     try {
       // Request storage permission
       if (Platform.isAndroid) {
@@ -370,13 +442,16 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
         }
       }
 
+      // Get filtered expenses based on breakdown type
+      final filteredExpenses = _getExpensesByBreakdownType(breakdownType);
+
       List<List<dynamic>> rows = [];
 
       // Header row
       rows.add(['Date', 'Title', 'Category', 'Amount (BDT)', 'Note']);
 
-      // Add all expenses
-      for (var expense in controller.expenses) {
+      // Add filtered expenses
+      for (var expense in filteredExpenses) {
         rows.add([
           DateFormat('yyyy-MM-dd').format(expense.date),
           expense.title,
@@ -396,8 +471,13 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
         directory = await getApplicationDocumentsDirectory();
       }
 
+      final filePrefix = breakdownType == 'today' 
+          ? 'Today' 
+          : breakdownType == 'weekly' 
+              ? 'Weekly' 
+              : 'Monthly';
       final fileName =
-          'MoneyMate_Report_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv';
+          'MoneyMate_${filePrefix}_Report_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv';
       final file = File('${directory.path}/$fileName');
 
       await file.writeAsString(csv);
@@ -434,7 +514,61 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'Download Report',
+                'Select Breakdown Period',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.today, color: Colors.blue),
+                title: const Text("Today's Breakdown"),
+                subtitle: const Text('Download today\'s report'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showFormatOptions('today');
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.calendar_view_week, color: Colors.green),
+                title: const Text('Weekly Breakdown'),
+                subtitle: const Text('Download this week\'s report'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showFormatOptions('weekly');
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.calendar_month, color: Colors.orange),
+                title: const Text('Monthly Breakdown'),
+                subtitle: const Text('Download all months report'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showFormatOptions('monthly');
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showFormatOptions(String breakdownType) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Download Format',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
@@ -444,7 +578,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                 subtitle: const Text('Professional formatted report'),
                 onTap: () {
                   Navigator.pop(context);
-                  _generatePDFReport();
+                  _generatePDFReport(breakdownType);
                 },
               ),
               const Divider(),
@@ -454,7 +588,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                 subtitle: const Text('For Excel or spreadsheet apps'),
                 onTap: () {
                   Navigator.pop(context);
-                  _generateCSVReport();
+                  _generateCSVReport(breakdownType);
                 },
               ),
               const SizedBox(height: 10),
@@ -851,6 +985,186 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
     );
   }
 
+  Widget _buildTodayBreakdown() {
+    final stats = _calculateTodayStats();
+    final totalExpense = stats['totalExpense'] as double;
+    final totalIncome = stats['totalIncome'] as double;
+    final balance = stats['balance'] as double;
+    final expenseCount = stats['expenseCount'] as int;
+
+    if (expenseCount == 0 && totalIncome == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.today, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                const Text(
+                  "Today's Breakdown",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    '💸 Spent',
+                    _formatCurrency(totalExpense),
+                    Colors.red,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatCard(
+                    '💰 Income',
+                    _formatCurrency(totalIncome),
+                    Colors.green,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: balance >= 0
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: balance >= 0 ? Colors.green : Colors.red,
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '💵 Balance',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '${balance >= 0 ? '+' : ''}${_formatCurrency(balance)}',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: balance >= 0 ? Colors.green[700] : Colors.red[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeeklyBreakdown() {
+    final stats = _calculateWeeklyStats();
+    final totalExpense = stats['totalExpense'] as double;
+    final totalIncome = stats['totalIncome'] as double;
+    final balance = stats['balance'] as double;
+    final expenseCount = stats['expenseCount'] as int;
+
+    if (expenseCount == 0 && totalIncome == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.calendar_view_week, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                const Text(
+                  "Weekly Breakdown",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    '💸 Spent',
+                    _formatCurrency(totalExpense),
+                    Colors.red,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatCard(
+                    '💰 Income',
+                    _formatCurrency(totalIncome),
+                    Colors.green,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: balance >= 0
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: balance >= 0 ? Colors.green : Colors.red,
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '💵 Balance',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '${balance >= 0 ? '+' : ''}${_formatCurrency(balance)}',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: balance >= 0 ? Colors.green[700] : Colors.red[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildOverallSummary() {
     if (controller.expenses.isEmpty) {
       return const SizedBox.shrink();
@@ -987,7 +1301,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Monthly Summary'),
+        title: Text('summary'.tr),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
@@ -1052,6 +1366,12 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
 
                 // Spending Trend Chart
                 _buildMonthlyChart(),
+
+                // Today's Breakdown
+                _buildTodayBreakdown(),
+
+                // Weekly Breakdown
+                _buildWeeklyBreakdown(),
 
                 // Monthly Breakdown Header
                 Padding(
