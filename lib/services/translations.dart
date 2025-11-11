@@ -159,7 +159,7 @@ class AppTranslations extends Translations {
       'choose_security_type': 'Choose Security Type',
       'pin_lock': 'PIN Lock',
       'pattern_lock': 'Pattern Lock',
-      'use_4_6_digit_pin': 'Use 4-6 digit PIN',
+      'use_4_digit_pin': 'Use 4 digit PIN',
       'draw_pattern_to_unlock': 'Draw pattern to unlock',
       'current_security': 'Current Security',
       'tap_to_change': 'Tap to change',
@@ -194,6 +194,9 @@ class AppTranslations extends Translations {
       'draw_new_pattern': 'Draw New Pattern',
       'confirm_new_pattern': 'Confirm New Pattern',
       'app_locked': 'App Locked',
+      'incorrect_pattern': 'Incorrect pattern. Please try again.',
+      'incorrect_pin': 'Incorrect PIN. Please try again.',
+      'patterns_do_not_match': 'Patterns do not match. Please try again.',
     },
     'bn_BD': {
       // App Name
@@ -353,7 +356,7 @@ class AppTranslations extends Translations {
       'choose_security_type': 'নিরাপত্তা ধরন নির্বাচন করুন',
       'pin_lock': 'পিন লক',
       'pattern_lock': 'প্যাটার্ন লক',
-      'use_4_6_digit_pin': '৪-৬ সংখ্যার পিন ব্যবহার করুন',
+      'use_4_digit_pin': '৪ সংখ্যার পিন ব্যবহার করুন',
       'draw_pattern_to_unlock': 'আনলক করতে প্যাটার্ন আঁকুন',
       'current_security': 'বর্তমান নিরাপত্তা',
       'tap_to_change': 'পরিবর্তন করতে ট্যাপ করুন',
@@ -390,6 +393,9 @@ class AppTranslations extends Translations {
       'draw_new_pattern': 'নতুন প্যাটার্ন আঁকুন',
       'confirm_new_pattern': 'নতুন প্যাটার্ন নিশ্চিত করুন',
       'app_locked': 'অ্যাপ লক করা',
+      'incorrect_pattern': 'ভুল প্যাটার্ন। আবার চেষ্টা করুন।',
+      'incorrect_pin': 'ভুল পিন। আবার চেষ্টা করুন।',
+      'patterns_do_not_match': 'প্যাটার্ন মিলছে না। আবার চেষ্টা করুন।',
     },
     'hi_IN': {
       // App Name

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screen_lock/flutter_screen_lock.dart';
+import 'package:pattern_lock/pattern_lock.dart';
 import 'package:get/get.dart';
 import '../controllers/security_controller.dart';
 
@@ -12,6 +14,11 @@ class LockScreen extends StatefulWidget {
 
 class _LockScreenState extends State<LockScreen> {
   bool _hasShownLock = false;
+
+  // Helper method to trigger vibration
+  void _vibrate() {
+    HapticFeedback.vibrate();
+  }
 
   @override
   void initState() {
@@ -59,6 +66,10 @@ class _LockScreenState extends State<LockScreen> {
       correctString: controller.getStoredPin(),
       canCancel: false,
       onUnlocked: _onUnlocked,
+      onError: (int retries) {
+        // Vibrate on wrong PIN
+        _vibrate();
+      },
       footer: Column(
         children: [
           if (controller.isBiometricEnabled.value)
@@ -87,35 +98,88 @@ class _LockScreenState extends State<LockScreen> {
   }
 
   void _showPatternLockScreen(SecurityController controller) {
-    screenLock(
+    // Show pattern lock dialog with PatternLock widget
+    showDialog(
       context: context,
-      correctString: controller.getStoredPattern(),
-      canCancel: false,
-      onUnlocked: _onUnlocked,
-      footer: Column(
-        children: [
-          if (controller.isBiometricEnabled.value)
-            TextButton.icon(
-              onPressed: () async {
-                final success = await controller.authenticateWithBiometrics();
-                if (success) {
-                  _onUnlocked();
-                }
-              },
-              icon: const Icon(Icons.fingerprint, size: 32),
-              label: Text('use_biometric'.tr),
-            ),
-          const SizedBox(height: 20),
-          Text(
-            'app_name'.tr,
-            style: TextStyle(
-              fontSize: 16,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return PopScope(
+          canPop: false,
+          child: Dialog(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    size: 60,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'draw_pattern'.tr,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  SizedBox(
+                    width: 250,
+                    height: 250,
+                    child: PatternLock(
+                      selectedColor: Theme.of(context).colorScheme.primary,
+                      pointRadius: 8,
+                      showInput: true,
+                      dimension: 3,
+                      relativePadding: 0.7,
+                      selectThreshold: 25,
+                      fillPoints: true,
+                      onInputComplete: (List<int> input) {
+                        final enteredPattern = input.join(',');
+                        final storedPattern = controller.getStoredPattern();
+
+                        if (enteredPattern == storedPattern) {
+                          Navigator.of(dialogContext).pop();
+                          _onUnlocked();
+                        } else {
+                          // Vibrate on wrong pattern
+                          _vibrate();
+                          // Show error
+                          Get.snackbar(
+                            'error'.tr,
+                            'incorrect_pattern'.tr,
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.red.withOpacity(0.8),
+                            colorText: Colors.white,
+                            duration: const Duration(seconds: 2),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  if (controller.isBiometricEnabled.value)
+                    TextButton.icon(
+                      onPressed: () async {
+                        final success = await controller
+                            .authenticateWithBiometrics();
+                        if (success) {
+                          Navigator.of(dialogContext).pop();
+                          _onUnlocked();
+                        }
+                      },
+                      icon: const Icon(Icons.fingerprint, size: 32),
+                      label: Text('use_biometric'.tr),
+                    ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 40),
-        ],
-      ),
+        );
+      },
     );
   }
 

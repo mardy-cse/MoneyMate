@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screen_lock/flutter_screen_lock.dart';
+import 'package:pattern_lock/pattern_lock.dart';
 import 'package:get/get.dart';
 import '../controllers/security_controller.dart';
 
@@ -87,7 +89,7 @@ class SecuritySettingsScreen extends StatelessWidget {
         ListTile(
           leading: const Icon(Icons.pin, size: 32),
           title: Text('pin_lock'.tr),
-          subtitle: Text('use_4_6_digit_pin'.tr),
+          subtitle: Text('use_4_digit_pin'.tr),
           trailing: const Icon(Icons.arrow_forward_ios),
           onTap: () => _setupPinLock(context, controller),
           tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -256,7 +258,7 @@ class SecuritySettingsScreen extends StatelessWidget {
           );
         }
       },
-      digits: 6,
+      digits: 4,
       footer: TextButton(
         onPressed: () => Navigator.of(context).pop(),
         child: Text('cancel'.tr),
@@ -265,25 +267,100 @@ class SecuritySettingsScreen extends StatelessWidget {
   }
 
   void _setupPatternLock(BuildContext context, SecurityController controller) {
-    screenLockCreate(
+    String? firstPattern;
+
+    showDialog(
       context: context,
-      onConfirmed: (pattern) async {
-        final success = await controller.enablePatternSecurity(pattern);
-        if (success) {
-          Navigator.of(context).pop();
-          Get.snackbar(
-            'success'.tr,
-            'pattern_security_enabled'.tr,
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green,
-            colorText: Colors.white,
-          );
-        }
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.lock_outline,
+                      size: 60,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      firstPattern == null
+                          ? 'draw_pattern'.tr
+                          : 'confirm_pattern'.tr,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: 250,
+                      height: 250,
+                      child: PatternLock(
+                        key: ValueKey(firstPattern),
+                        selectedColor: Theme.of(context).colorScheme.primary,
+                        pointRadius: 8,
+                        showInput: true,
+                        dimension: 3,
+                        relativePadding: 0.7,
+                        selectThreshold: 25,
+                        fillPoints: true,
+                        onInputComplete: (List<int> input) async {
+                          final pattern = input.join(',');
+
+                          if (firstPattern == null) {
+                            setState(() {
+                              firstPattern = pattern;
+                            });
+                          } else {
+                            if (pattern == firstPattern) {
+                              final success = await controller
+                                  .enablePatternSecurity(pattern);
+                              if (success) {
+                                Navigator.of(dialogContext).pop();
+                                Get.snackbar(
+                                  'success'.tr,
+                                  'pattern_security_enabled'.tr,
+                                  snackPosition: SnackPosition.BOTTOM,
+                                  backgroundColor: Colors.green,
+                                  colorText: Colors.white,
+                                );
+                              }
+                            } else {
+                              // Vibrate on pattern mismatch
+                              _vibrate();
+                              Get.snackbar(
+                                'error'.tr,
+                                'patterns_do_not_match'.tr,
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.red.withOpacity(0.8),
+                                colorText: Colors.white,
+                              );
+                              setState(() {
+                                firstPattern = null;
+                              });
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: Text('cancel'.tr),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
       },
-      footer: TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: Text('cancel'.tr),
-      ),
     );
   }
 
@@ -300,17 +377,93 @@ class SecuritySettingsScreen extends StatelessWidget {
           Navigator.of(context).pop();
           _showChangeSecurityOptions(context, controller);
         },
-      );
-    } else {
-      screenLock(
-        context: context,
-        correctString: controller.getStoredPattern(),
-        onUnlocked: () {
-          Navigator.of(context).pop();
-          _showChangeSecurityOptions(context, controller);
+        onError: (int retries) {
+          // Vibrate on wrong PIN
+          _vibrate();
         },
       );
+    } else {
+      // Pattern verification
+      _verifyPatternToChange(context, controller);
     }
+  }
+
+  void _verifyPatternToChange(
+    BuildContext context,
+    SecurityController controller,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return PopScope(
+          canPop: false,
+          child: Dialog(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    size: 60,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'draw_pattern'.tr,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  SizedBox(
+                    width: 250,
+                    height: 250,
+                    child: PatternLock(
+                      selectedColor: Theme.of(context).colorScheme.primary,
+                      pointRadius: 8,
+                      showInput: true,
+                      dimension: 3,
+                      relativePadding: 0.7,
+                      selectThreshold: 25,
+                      fillPoints: true,
+                      onInputComplete: (List<int> input) {
+                        final enteredPattern = input.join(',');
+                        final storedPattern = controller.getStoredPattern();
+
+                        if (enteredPattern == storedPattern) {
+                          Navigator.of(dialogContext).pop();
+                          _showChangeSecurityOptions(context, controller);
+                        } else {
+                          // Vibrate on wrong pattern
+                          _vibrate();
+                          Get.snackbar(
+                            'error'.tr,
+                            'incorrect_pattern'.tr,
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.red.withOpacity(0.8),
+                            colorText: Colors.white,
+                            duration: const Duration(seconds: 2),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: Text('cancel'.tr),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showChangeSecurityOptions(
@@ -385,45 +538,116 @@ class SecuritySettingsScreen extends StatelessWidget {
           );
         }
       },
-      digits: 6,
+      digits: 4,
       footer: TextButton(onPressed: () => Get.back(), child: Text('cancel'.tr)),
     );
   }
 
   void _changeToPattern(BuildContext context, SecurityController controller) {
+    String? firstPattern;
     bool isProcessing = false;
 
-    screenLockCreate(
+    showDialog(
       context: context,
-      title: Text('draw_new_pattern'.tr),
-      confirmTitle: Text('confirm_new_pattern'.tr),
-      onConfirmed: (pattern) async {
-        if (isProcessing) return; // Prevent multiple calls
-        isProcessing = true;
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.lock_outline,
+                      size: 60,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      firstPattern == null
+                          ? 'draw_new_pattern'.tr
+                          : 'confirm_new_pattern'.tr,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: 250,
+                      height: 250,
+                      child: PatternLock(
+                        key: ValueKey(firstPattern),
+                        selectedColor: Theme.of(context).colorScheme.primary,
+                        pointRadius: 8,
+                        showInput: true,
+                        dimension: 3,
+                        relativePadding: 0.7,
+                        selectThreshold: 25,
+                        fillPoints: true,
+                        onInputComplete: (List<int> input) async {
+                          if (isProcessing) return;
 
-        // Save the new pattern
-        final success = await controller.enablePatternSecurity(pattern);
+                          final pattern = input.join(',');
 
-        // Use GetX navigation to go back
-        Get.back(); // Close the dialog
+                          if (firstPattern == null) {
+                            setState(() {
+                              firstPattern = pattern;
+                            });
+                          } else {
+                            if (pattern == firstPattern) {
+                              isProcessing = true;
+                              final success = await controller
+                                  .enablePatternSecurity(pattern);
+                              Get.back();
 
-        // Small delay
-        await Future.delayed(const Duration(milliseconds: 100));
+                              await Future.delayed(
+                                const Duration(milliseconds: 100),
+                              );
 
-        // Show message
-        if (success) {
-          Get.snackbar(
-            'success'.tr,
-            'pattern_changed_successfully'.tr,
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green,
-            colorText: Colors.white,
-            duration: const Duration(seconds: 2),
-            margin: const EdgeInsets.all(16),
-          );
-        }
+                              if (success) {
+                                Get.snackbar(
+                                  'success'.tr,
+                                  'pattern_changed_successfully'.tr,
+                                  snackPosition: SnackPosition.BOTTOM,
+                                  backgroundColor: Colors.green,
+                                  colorText: Colors.white,
+                                  duration: const Duration(seconds: 2),
+                                );
+                              }
+                            } else {
+                              // Vibrate on pattern mismatch
+                              _vibrate();
+                              Get.snackbar(
+                                'error'.tr,
+                                'patterns_do_not_match'.tr,
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.red.withOpacity(0.8),
+                                colorText: Colors.white,
+                              );
+                              setState(() {
+                                firstPattern = null;
+                              });
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextButton(
+                      onPressed: () => Get.back(),
+                      child: Text('cancel'.tr),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
       },
-      footer: TextButton(onPressed: () => Get.back(), child: Text('cancel'.tr)),
     );
   }
 
@@ -446,25 +670,106 @@ class SecuritySettingsScreen extends StatelessWidget {
             );
           }
         },
-      );
-    } else {
-      screenLock(
-        context: context,
-        correctString: controller.getStoredPattern(),
-        onUnlocked: () async {
-          Navigator.of(context).pop();
-          final success = await controller.disableSecurity();
-          if (success) {
-            Get.snackbar(
-              'success'.tr,
-              'security_disabled_successfully'.tr,
-              snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: Colors.orange,
-              colorText: Colors.white,
-            );
-          }
+        onError: (int retries) {
+          // Vibrate on wrong PIN
+          _vibrate();
         },
       );
+    } else {
+      // Pattern verification
+      _verifyPatternToDisable(context, controller);
     }
   }
+
+  void _verifyPatternToDisable(
+    BuildContext context,
+    SecurityController controller,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return PopScope(
+          canPop: false,
+          child: Dialog(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    size: 60,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'draw_pattern'.tr,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  SizedBox(
+                    width: 250,
+                    height: 250,
+                    child: PatternLock(
+                      selectedColor: Theme.of(context).colorScheme.primary,
+                      pointRadius: 8,
+                      showInput: true,
+                      dimension: 3,
+                      relativePadding: 0.7,
+                      selectThreshold: 25,
+                      fillPoints: true,
+                      onInputComplete: (List<int> input) async {
+                        final enteredPattern = input.join(',');
+                        final storedPattern = controller.getStoredPattern();
+
+                        if (enteredPattern == storedPattern) {
+                          Navigator.of(dialogContext).pop();
+                          final success = await controller.disableSecurity();
+                          if (success) {
+                            Get.snackbar(
+                              'success'.tr,
+                              'security_disabled_successfully'.tr,
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.orange,
+                              colorText: Colors.white,
+                            );
+                          }
+                        } else {
+                          // Vibrate on wrong pattern
+                          _vibrate();
+                          Get.snackbar(
+                            'error'.tr,
+                            'incorrect_pattern'.tr,
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.red.withOpacity(0.8),
+                            colorText: Colors.white,
+                            duration: const Duration(seconds: 2),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: Text('cancel'.tr),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Helper function to trigger vibration
+void _vibrate() {
+  HapticFeedback.vibrate();
 }
