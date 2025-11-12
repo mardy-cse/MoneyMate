@@ -687,15 +687,42 @@ class _CloudSyncScreenState extends State<CloudSyncScreen>
 
           // Auto sync toggle
           Card(
-            child: SwitchListTile(
-              title: const Text('Auto Sync'),
-              subtitle: const Text(
-                'Automatically sync when you add/edit expenses',
-              ),
-              value: _firebaseService.autoSyncEnabled.value,
-              onChanged: (value) {
-                _firebaseService.autoSyncEnabled.value = value;
-              },
+            child: Column(
+              children: [
+                SwitchListTile(
+                  title: const Text('Auto Sync'),
+                  subtitle: const Text(
+                    'Automatically sync when you add/edit expenses',
+                  ),
+                  value: _firebaseService.autoSyncEnabled.value,
+                  onChanged: (value) {
+                    _firebaseService.autoSyncEnabled.value = value;
+                  },
+                ),
+                const Divider(height: 1),
+                Obx(
+                  () => SwitchListTile(
+                    title: const Text('Real-time Sync'),
+                    subtitle: const Text(
+                      'Automatically sync changes from other devices',
+                    ),
+                    value: _firebaseService.realtimeSyncEnabled.value,
+                    onChanged: (value) {
+                      _firebaseService.toggleRealtimeSync(value);
+                      
+                      Get.snackbar(
+                        value ? 'Enabled' : 'Disabled',
+                        value
+                            ? 'Real-time sync is now active. Changes from other devices will appear instantly.'
+                            : 'Real-time sync is disabled. Use manual sync to update.',
+                        backgroundColor: value ? Colors.green : Colors.orange,
+                        colorText: Colors.white,
+                        duration: const Duration(seconds: 3),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 20),

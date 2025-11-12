@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'dart:async';
 import '../models/expense.dart';
 import '../controllers/personalization_controller.dart';
+import '../controllers/expense_controller.dart';
 import 'database_helper.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -16,6 +18,10 @@ class FirebaseService extends GetxService {
   final RxBool isSyncing = false.obs;
   final RxBool autoSyncEnabled = true.obs;
   final RxString lastSyncTime = ''.obs;
+  final RxBool realtimeSyncEnabled = true.obs;
+
+  // Real-time listener subscription
+  StreamSubscription<QuerySnapshot>? _expensesListener;
 
   @override
   void onInit() {
@@ -23,7 +29,130 @@ class FirebaseService extends GetxService {
     currentUser.value = _auth.currentUser;
     _auth.authStateChanges().listen((User? user) {
       currentUser.value = user;
+      
+      // Start/stop real-time sync based on user login status
+      if (user != null && realtimeSyncEnabled.value) {
+        startRealtimeSync();
+      } else {
+        stopRealtimeSync();
+      }
     });
+  }
+
+  @override
+  void onClose() {
+    stopRealtimeSync();
+    super.onClose();
+  }
+
+  // Start real-time sync listener
+  void startRealtimeSync() {
+    final user = currentUser.value;
+    if (user == null) return;
+
+    // Cancel existing listener if any
+    stopRealtimeSync();
+
+    print('Starting real-time sync for user: ${user.uid}');
+
+    // Listen to Firestore changes
+    _expensesListener = _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('expenses')
+        .snapshots()
+        .listen(
+      (snapshot) async {
+        if (snapshot.metadata.hasPendingWrites) {
+          // Skip local writes to avoid duplicate syncs
+          return;
+        }
+
+        print('Firestore snapshot received: ${snapshot.docChanges.length} changes');
+
+        for (var change in snapshot.docChanges) {
+          try {
+            if (change.type == DocumentChangeType.added ||
+                change.type == DocumentChangeType.modified) {
+              // Add or update expense in local database
+              final expense = Expense.fromMap(change.doc.data()!);
+              
+              // Check if expense already exists locally
+              final existingExpenses = await _dbHelper.getExpenses();
+              final exists = existingExpenses.any((e) => e.id == expense.id);
+
+              if (exists) {
+                await _dbHelper.updateExpense(expense);
+                print('Updated expense: ${expense.id}');
+              } else {
+                await _dbHelper.insertExpense(expense);
+                print('Added expense: ${expense.id}');
+              }
+
+              // Refresh ExpenseController
+              try {
+                final expenseController = Get.find<ExpenseController>();
+                await expenseController.fetchExpenses();
+              } catch (e) {
+                print('Error refreshing ExpenseController: $e');
+              }
+            } else if (change.type == DocumentChangeType.removed) {
+              // Delete expense from local database
+              final firestoreDocId = change.doc.id;
+              
+              // Find the expense by Firestore doc id and delete by SQLite internal id
+              final existingExpenses = await _dbHelper.getExpenses();
+              
+              // Firestore doc ID is stored in the 'id' field as string
+              // We need to find the expense and use its SQLite id to delete
+              for (var expense in existingExpenses) {
+                // Compare Firestore ID (stored as string in expense.id field)
+                if (expense.id.toString() == firestoreDocId) {
+                  if (expense.id != null) {
+                    await _dbHelper.deleteExpense(expense.id!);
+                    print('Deleted expense: $firestoreDocId');
+
+                    // Refresh ExpenseController
+                    try {
+                      final expenseController = Get.find<ExpenseController>();
+                      await expenseController.fetchExpenses();
+                    } catch (e) {
+                      print('Error refreshing ExpenseController: $e');
+                    }
+                  }
+                  break;
+                }
+              }
+            }
+          } catch (e) {
+            print('Error processing Firestore change: $e');
+          }
+        }
+
+        // Update last sync time
+        lastSyncTime.value = DateTime.now().toString();
+      },
+      onError: (error) {
+        print('Error in real-time sync: $error');
+      },
+    );
+  }
+
+  // Stop real-time sync listener
+  void stopRealtimeSync() {
+    _expensesListener?.cancel();
+    _expensesListener = null;
+    print('Stopped real-time sync');
+  }
+
+  // Toggle real-time sync
+  void toggleRealtimeSync(bool enabled) {
+    realtimeSyncEnabled.value = enabled;
+    if (enabled && currentUser.value != null) {
+      startRealtimeSync();
+    } else {
+      stopRealtimeSync();
+    }
   }
 
   // Check internet connectivity
