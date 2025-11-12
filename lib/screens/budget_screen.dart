@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/budget.dart';
 import '../services/database_helper.dart';
 import '../services/currency_service.dart';
@@ -20,15 +21,54 @@ class _BudgetScreenState extends State<BudgetScreen> {
   List<SavingGoal> goals = [];
   bool isLoading = true;
 
+  // Daily, Weekly, Monthly budgets
+  final _dailyBudgetController = TextEditingController();
+  final _weeklyBudgetController = TextEditingController();
+  final _monthlyBudgetController = TextEditingController();
+
+  double _dailyBudget = 0.0;
+  double _weeklyBudget = 0.0;
+  double _monthlyBudget = 0.0;
+  double _dailySpent = 0.0;
+  double _weeklySpent = 0.0;
+  double _monthlySpent = 0.0;
+
+  static const String _dailyBudgetKey = 'daily_budget';
+  static const String _weeklyBudgetKey = 'weekly_budget';
+  static const String _monthlyBudgetKey = 'monthly_budget';
+
   @override
   void initState() {
     super.initState();
     _loadData();
   }
 
+  @override
+  void dispose() {
+    _dailyBudgetController.dispose();
+    _weeklyBudgetController.dispose();
+    _monthlyBudgetController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadData() async {
     setState(() => isLoading = true);
     try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Load daily, weekly, monthly budgets
+      _dailyBudget = prefs.getDouble(_dailyBudgetKey) ?? 0.0;
+      _weeklyBudget = prefs.getDouble(_weeklyBudgetKey) ?? 0.0;
+      _monthlyBudget = prefs.getDouble(_monthlyBudgetKey) ?? 0.0;
+
+      // Set controllers
+      _dailyBudgetController.text = _dailyBudget > 0 ? _dailyBudget.toString() : '';
+      _weeklyBudgetController.text = _weeklyBudget > 0 ? _weeklyBudget.toString() : '';
+      _monthlyBudgetController.text = _monthlyBudget > 0 ? _monthlyBudget.toString() : '';
+
+      // Calculate spending
+      await _calculateSpending();
+
       final loadedBudgets = await DatabaseHelper().getBudgets();
       final loadedGoals = await DatabaseHelper().getGoals();
       setState(() {
@@ -53,28 +93,182 @@ class _BudgetScreenState extends State<BudgetScreen> {
     return Colors.red;
   }
 
+  // Calculate daily, weekly, monthly spending
+  Future<void> _calculateSpending() async {
+    try {
+      final expenses = await DatabaseHelper().getExpenses();
+      final now = DateTime.now();
+
+      // Calculate daily spending (today)
+      final todayStart = DateTime(now.year, now.month, now.day);
+      
+      _dailySpent = expenses
+          .where((expense) {
+            final expenseDate = DateTime(
+              expense.date.year,
+              expense.date.month,
+              expense.date.day,
+            );
+            return expenseDate.isAtSameMomentAs(todayStart) && expense.amount > 0;
+          })
+          .fold(0.0, (sum, expense) => sum + expense.amount);
+
+      // Calculate weekly spending (this week)
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      final weekStart = DateTime(
+        startOfWeek.year,
+        startOfWeek.month,
+        startOfWeek.day,
+      );
+
+      _weeklySpent = expenses
+          .where((expense) {
+            final expenseDate = DateTime(
+              expense.date.year,
+              expense.date.month,
+              expense.date.day,
+            );
+            return expenseDate.isAfter(
+              weekStart.subtract(const Duration(days: 1)),
+            ) && expense.amount > 0;
+          })
+          .fold(0.0, (sum, expense) => sum + expense.amount);
+
+      // Calculate monthly spending (this month)
+      final monthStart = DateTime(now.year, now.month, 1);
+
+      _monthlySpent = expenses
+          .where((expense) {
+            final expenseDate = DateTime(
+              expense.date.year,
+              expense.date.month,
+              expense.date.day,
+            );
+            return expenseDate.isAfter(
+              monthStart.subtract(const Duration(days: 1)),
+            ) && expense.amount > 0;
+          })
+          .fold(0.0, (sum, expense) => sum + expense.amount);
+
+      setState(() {});
+    } catch (e) {
+      debugPrint('Error calculating spending: $e');
+    }
+  }
+
+  Future<void> _savePeriodBudgets() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Parse and save daily budget
+      final dailyValue =
+          double.tryParse(_dailyBudgetController.text.trim()) ?? 0.0;
+      await prefs.setDouble(_dailyBudgetKey, dailyValue);
+
+      // Parse and save weekly budget
+      final weeklyValue =
+          double.tryParse(_weeklyBudgetController.text.trim()) ?? 0.0;
+      await prefs.setDouble(_weeklyBudgetKey, weeklyValue);
+
+      // Parse and save monthly budget
+      final monthlyValue =
+          double.tryParse(_monthlyBudgetController.text.trim()) ?? 0.0;
+      await prefs.setDouble(_monthlyBudgetKey, monthlyValue);
+
+      setState(() {
+        _dailyBudget = dailyValue;
+        _weeklyBudget = weeklyValue;
+        _monthlyBudget = monthlyValue;
+      });
+
+      Get.snackbar(
+        'Success',
+        'Budgets saved successfully!',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Error saving budgets: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  double _getPercentage(double spent, double budget) {
+    if (budget <= 0) return 0;
+    return (spent / budget * 100).clamp(0, 100);
+  }
+
+  Color _getStatusColor(double spent, double budget) {
+    if (budget <= 0) return Colors.grey;
+    final percentage = spent / budget;
+    if (percentage >= 1.0) return Colors.red;
+    if (percentage >= 0.8) return Colors.orange;
+    return Colors.green;
+  }
+
   // Calculate spending for a category
-  Future<double> _getCategorySpending(String category) async {
+  Future<double> _getCategorySpending(String category, String period) async {
     final now = DateTime.now();
-    final startOfMonth = DateTime(now.year, now.month, 1);
-    final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+    DateTime startDate;
+    DateTime endDate;
+
+    if (period == 'weekly') {
+      // Calculate weekly spending (this week)
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      startDate = DateTime(
+        startOfWeek.year,
+        startOfWeek.month,
+        startOfWeek.day,
+      );
+      endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    } else {
+      // Monthly (default)
+      startDate = DateTime(now.year, now.month, 1);
+      endDate = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+    }
 
     final expenses = await DatabaseHelper().getExpensesByDateRange(
-      startOfMonth,
-      endOfMonth,
+      startDate,
+      endDate,
     );
+
+    // Debug: Print all expenses
+    debugPrint('=== Budget Category: $category, Period: $period ===');
+    debugPrint('Date Range: $startDate to $endDate');
+    debugPrint('Total expenses count: ${expenses.length}');
+    
+    for (var expense in expenses) {
+      debugPrint('Expense: ${expense.title}, Category: ${expense.category}, Amount: ${expense.amount}, Date: ${expense.date}');
+    }
 
     if (category == 'Overall') {
       // Only sum expenses (positive amounts), not income
-      return expenses
+      final total = expenses
           .where((e) => e.amount > 0)
           .fold<double>(0.0, (sum, expense) => sum + expense.amount);
+      debugPrint('Overall spending: $total');
+      return total;
     }
 
     // Only sum expenses (positive amounts) for the category
-    return expenses
-        .where((e) => e.category == category && e.amount > 0)
-        .fold<double>(0.0, (sum, expense) => sum + expense.amount);
+    // Use case-insensitive comparison
+    final categoryLower = category.toLowerCase();
+    final filteredExpenses = expenses.where((e) {
+      final match = e.category.toLowerCase() == categoryLower && e.amount > 0;
+      if (match) {
+        debugPrint('Matched expense: ${e.title}, ${e.category}, ${e.amount}');
+      }
+      return match;
+    });
+    
+    final total = filteredExpenses.fold<double>(0.0, (sum, expense) => sum + expense.amount);
+    debugPrint('$category spending: $total');
+    return total;
   }
 
   void _showAddBudgetDialog() {
@@ -314,9 +508,136 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
   }
 
+  Widget _buildPeriodBudgetCard({
+    required String title,
+    required String period,
+    required double budget,
+    required double spent,
+    required IconData icon,
+  }) {
+    final percentage = _getPercentage(spent, budget);
+    final statusColor = _getStatusColor(spent, budget);
+    final remaining = budget - spent;
+
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: statusColor, size: 28),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (budget > 0) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: percentage / 100,
+                  backgroundColor: Colors.grey[300],
+                  valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                  minHeight: 12,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Spent',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatCurrency(spent),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: statusColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Budget',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatCurrency(budget),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Remaining',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatCurrency(remaining),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: remaining >= 0 ? Colors.green : Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${percentage.toStringAsFixed(1)}% of budget used',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ] else ...[
+              Text(
+                'No budget set for $period',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBudgetCard(Budget budget) {
     return FutureBuilder<double>(
-      future: _getCategorySpending(budget.category),
+      future: _getCategorySpending(budget.category, budget.period),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return Card(
@@ -807,7 +1128,206 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Budgets Section
+                    // Period Budgets Section (Daily, Weekly, Monthly)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Period Budgets',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Budget Status Cards
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        children: [
+                          _buildPeriodBudgetCard(
+                            title: 'Daily Budget',
+                            period: 'today',
+                            budget: _dailyBudget,
+                            spent: _dailySpent,
+                            icon: Icons.today,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildPeriodBudgetCard(
+                            title: 'Weekly Budget',
+                            period: 'this week',
+                            budget: _weeklyBudget,
+                            spent: _weeklySpent,
+                            icon: Icons.calendar_view_week,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildPeriodBudgetCard(
+                            title: 'Monthly Budget',
+                            period: 'this month',
+                            budget: _monthlyBudget,
+                            spent: _monthlySpent,
+                            icon: Icons.calendar_month,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Set Period Budgets Input Section
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Set Period Budgets',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              
+                              // Daily Budget Input
+                              TextField(
+                                controller: _dailyBudgetController,
+                                decoration: InputDecoration(
+                                  labelText: 'Daily Budget',
+                                  hintText: 'Enter daily budget',
+                                  prefixIcon: Obx(() {
+                                    final currencyService = CurrencyService.instance;
+                                    return Padding(
+                                      padding: const EdgeInsets.all(12.0),
+                                      child: Text(
+                                        currencyService.selectedCurrencySymbol.value,
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                  border: const OutlineInputBorder(),
+                                ),
+                                keyboardType: const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'^\d+\.?\d{0,2}'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Weekly Budget Input
+                              TextField(
+                                controller: _weeklyBudgetController,
+                                decoration: InputDecoration(
+                                  labelText: 'Weekly Budget',
+                                  hintText: 'Enter weekly budget',
+                                  prefixIcon: Obx(() {
+                                    final currencyService = CurrencyService.instance;
+                                    return Padding(
+                                      padding: const EdgeInsets.all(12.0),
+                                      child: Text(
+                                        currencyService.selectedCurrencySymbol.value,
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                  border: const OutlineInputBorder(),
+                                ),
+                                keyboardType: const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'^\d+\.?\d{0,2}'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Monthly Budget Input
+                              TextField(
+                                controller: _monthlyBudgetController,
+                                decoration: InputDecoration(
+                                  labelText: 'Monthly Budget',
+                                  hintText: 'Enter monthly budget',
+                                  prefixIcon: Obx(() {
+                                    final currencyService = CurrencyService.instance;
+                                    return Padding(
+                                      padding: const EdgeInsets.all(12.0),
+                                      child: Text(
+                                        currencyService.selectedCurrencySymbol.value,
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                  border: const OutlineInputBorder(),
+                                ),
+                                keyboardType: const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'^\d+\.?\d{0,2}'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Save Button
+                              ElevatedButton(
+                                onPressed: _savePeriodBudgets,
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: const Size(double.infinity, 50),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Save Period Budgets',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const Divider(thickness: 2),
+                    const SizedBox(height: 8),
+
+                    // ==================== Category Budgets Section (COMMENTED) ====================
+                    /*
+                    // Category Budgets Section
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Row(
@@ -821,7 +1341,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                               ),
                               const SizedBox(width: 8),
                               const Text(
-                                'Budgets',
+                                'Category Budgets',
                                 style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
@@ -870,6 +1390,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
                     const SizedBox(height: 24),
                     const Divider(),
+                    */
+                    // ==================== End of Category Budgets Section ====================
 
                     // Goals Section
                     Padding(

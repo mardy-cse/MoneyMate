@@ -257,6 +257,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         : weeklyTotals.values.reduce((a, b) => a > b ? a : b) * 1.2;
 
     final sortedEntries = weeklyTotals.entries.toList();
+    final interval = maxY > 0 ? maxY / 5 : 20.0;
 
     return Column(
       children: [
@@ -306,10 +307,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 40,
+                      interval: interval,
                       getTitlesWidget: (value, meta) {
-                        return Text(
-                          '\$${value.toInt()}',
-                          style: const TextStyle(fontSize: 12),
+                        final currencyService = CurrencyService.instance;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Text(
+                            '${currencyService.selectedCurrencySymbol.value}${value.toInt()}',
+                            style: const TextStyle(fontSize: 10),
+                            textAlign: TextAlign.right,
+                          ),
                         );
                       },
                     ),
@@ -324,7 +331,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: maxY / 5,
+                  horizontalInterval: maxY > 0 ? maxY / 5 : 20.0,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(color: Colors.grey[300], strokeWidth: 1);
                   },
@@ -378,6 +385,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         : dailyTotals.values.reduce((a, b) => a > b ? a : b) * 1.2;
 
     final sortedEntries = dailyTotals.entries.toList();
+    final interval = maxY > 0 ? maxY / 5 : 20.0;
 
     return Column(
       children: [
@@ -427,10 +435,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 40,
+                      interval: interval,
                       getTitlesWidget: (value, meta) {
-                        return Text(
-                          '\$${value.toInt()}',
-                          style: const TextStyle(fontSize: 12),
+                        final currencyService = CurrencyService.instance;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Text(
+                            '${currencyService.selectedCurrencySymbol.value}${value.toInt()}',
+                            style: const TextStyle(fontSize: 10),
+                            textAlign: TextAlign.right,
+                          ),
                         );
                       },
                     ),
@@ -445,7 +459,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: maxY / 5,
+                  horizontalInterval: maxY > 0 ? maxY / 5 : 20.0,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(color: Colors.grey[300], strokeWidth: 1);
                   },
@@ -499,6 +513,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         : monthlyTotals.values.reduce((a, b) => a > b ? a : b) * 1.2;
 
     final sortedEntries = monthlyTotals.entries.toList();
+    final interval = maxY > 0 ? maxY / 5 : 20.0;
 
     return Column(
       children: [
@@ -548,10 +563,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 40,
+                      interval: interval,
                       getTitlesWidget: (value, meta) {
-                        return Text(
-                          '\$${value.toInt()}',
-                          style: const TextStyle(fontSize: 12),
+                        final currencyService = CurrencyService.instance;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Text(
+                            '${currencyService.selectedCurrencySymbol.value}${value.toInt()}',
+                            style: const TextStyle(fontSize: 10),
+                            textAlign: TextAlign.right,
+                          ),
                         );
                       },
                     ),
@@ -566,7 +587,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: maxY / 5,
+                  horizontalInterval: maxY > 0 ? maxY / 5 : 20.0,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(color: Colors.grey[300], strokeWidth: 1);
                   },
