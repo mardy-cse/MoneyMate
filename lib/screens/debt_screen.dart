@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/debt.dart';
 import '../services/database_helper.dart';
 import '../services/currency_service.dart';
+import '../widgets/custom_search_bar.dart';
 
 class DebtScreen extends StatefulWidget {
   const DebtScreen({super.key});
@@ -17,10 +18,13 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
   late TabController _tabController;
   List<Debt> _lentDebts = [];
   List<Debt> _borrowedDebts = [];
+  List<Debt> _filteredLentDebts = [];
+  List<Debt> _filteredBorrowedDebts = [];
   bool _isLoading = true;
   bool _isSyncing = false;
   double _totalLent = 0.0;
   double _totalBorrowed = 0.0;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -29,6 +33,9 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
     _tabController.addListener(() {
       setState(() {}); // Refresh UI when tab changes
     });
+    _searchController.addListener(() {
+      setState(() {}); // Refresh UI to show/hide clear button
+    });
     _loadDebts();
     _checkAndSyncFromFirebase();
   }
@@ -36,6 +43,7 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -67,9 +75,32 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
     setState(() {
       _lentDebts = lent;
       _borrowedDebts = borrowed;
+      _filteredLentDebts = lent;
+      _filteredBorrowedDebts = borrowed;
       _totalLent = totalLent;
       _totalBorrowed = totalBorrowed;
       _isLoading = false;
+    });
+  }
+
+  void _filterDebts(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredLentDebts = _lentDebts;
+        _filteredBorrowedDebts = _borrowedDebts;
+      } else {
+        _filteredLentDebts = _lentDebts.where((debt) {
+          return debt.personName.toLowerCase().contains(query.toLowerCase()) ||
+                 (debt.phoneNumber?.contains(query) ?? false) ||
+                 (debt.description?.toLowerCase().contains(query.toLowerCase()) ?? false);
+        }).toList();
+        
+        _filteredBorrowedDebts = _borrowedDebts.where((debt) {
+          return debt.personName.toLowerCase().contains(query.toLowerCase()) ||
+                 (debt.phoneNumber?.contains(query) ?? false) ||
+                 (debt.description?.toLowerCase().contains(query.toLowerCase()) ?? false);
+        }).toList();
+      }
     });
   }
 
@@ -126,7 +157,6 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                 // Custom Tab Buttons
                 Container(
                   padding: const EdgeInsets.all(16),
-                  color: Colors.grey[200],
                   child: Row(
                     children: [
                       Expanded(
@@ -141,8 +171,18 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                             decoration: BoxDecoration(
                               color: _tabController.index == 0 
                                   ? const Color(0xFF5F7A8F)
-                                  : Colors.white,
+                                  : Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey.shade800
+                                      : Colors.white,
                               borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: _tabController.index == 0
+                                    ? const Color(0xFF5F7A8F)
+                                    : Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey.shade700
+                                        : Colors.grey.shade300,
+                                width: 1,
+                              ),
                             ),
                             child: Column(
                               children: [
@@ -150,7 +190,9 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                                   Icons.arrow_upward,
                                   color: _tabController.index == 0 
                                       ? Colors.white 
-                                      : Colors.black,
+                                      : Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black,
                                   size: 20,
                                 ),
                                 Text(
@@ -158,7 +200,9 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                                   style: TextStyle(
                                     color: _tabController.index == 0 
                                         ? Colors.white 
-                                        : Colors.black,
+                                        : Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.white
+                                            : Colors.black,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -168,7 +212,9 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                                     fontSize: 12,
                                     color: _tabController.index == 0 
                                         ? Colors.white 
-                                        : Colors.black,
+                                        : Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.white
+                                            : Colors.black,
                                   ),
                                 ),
                               ],
@@ -189,8 +235,18 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                             decoration: BoxDecoration(
                               color: _tabController.index == 1 
                                   ? const Color(0xFF5F7A8F)
-                                  : Colors.white,
+                                  : Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey.shade800
+                                      : Colors.white,
                               borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: _tabController.index == 1
+                                    ? const Color(0xFF5F7A8F)
+                                    : Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey.shade700
+                                        : Colors.grey.shade300,
+                                width: 1,
+                              ),
                             ),
                             child: Column(
                               children: [
@@ -198,7 +254,9 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                                   Icons.arrow_downward,
                                   color: _tabController.index == 1 
                                       ? Colors.white 
-                                      : Colors.black,
+                                      : Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black,
                                   size: 20,
                                 ),
                                 Text(
@@ -206,7 +264,9 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                                   style: TextStyle(
                                     color: _tabController.index == 1 
                                         ? Colors.white 
-                                        : Colors.black,
+                                        : Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.white
+                                            : Colors.black,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -216,7 +276,9 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                                     fontSize: 12,
                                     color: _tabController.index == 1 
                                         ? Colors.white 
-                                        : Colors.black,
+                                        : Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.white
+                                            : Colors.black,
                                   ),
                                 ),
                               ],
@@ -227,13 +289,19 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                     ],
                   ),
                 ),
+                // Search Bar
+                CustomSearchBar(
+                  controller: _searchController,
+                  hintText: 'Search by name, phone or description...',
+                  onChanged: _filterDebts,
+                ),
                 // Tab Content
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildDebtList(_lentDebts, 'lent'),
-                      _buildDebtList(_borrowedDebts, 'borrowed'),
+                      _buildDebtList(_filteredLentDebts, 'lent'),
+                      _buildDebtList(_filteredBorrowedDebts, 'borrowed'),
                     ],
                   ),
                 ),

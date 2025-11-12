@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../models/expense.dart';
 import '../controllers/expense_controller.dart';
 import '../services/currency_service.dart';
+import '../widgets/custom_search_bar.dart';
 import 'expense_detail_screen.dart';
 
 class ExpenseHistoryScreen extends StatefulWidget {
@@ -193,28 +194,10 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
     return Column(
       children: [
         // Search Bar
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search by title or category...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                        _filterExpenses();
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onChanged: (value) => _filterExpenses(),
-          ),
+        CustomSearchBar(
+          controller: _searchController,
+          hintText: 'Search by title or category...',
+          onChanged: (value) => _filterExpenses(),
         ),
 
         // Date Range Filter

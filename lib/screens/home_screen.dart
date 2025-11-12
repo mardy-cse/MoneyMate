@@ -7,6 +7,7 @@ import '../controllers/expense_controller.dart';
 import '../controllers/personalization_controller.dart';
 import '../services/currency_service.dart';
 import '../services/database_helper.dart';
+import '../widgets/custom_search_bar.dart';
 import 'budget_screen.dart';
 import 'expense_detail_screen.dart';
 import 'cloud_sync_screen.dart';
@@ -712,38 +713,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Search Bar
             if (todayExpenses.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value;
-                    });
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Search expenses...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              setState(() {
-                                _searchController.clear();
-                                _searchQuery = '';
-                              });
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey[800]
-                        : Colors.grey[100],
-                  ),
-                ),
+              CustomSearchBar(
+                controller: _searchController,
+                hintText: 'Search expenses...',
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
               ),
             if (todayExpenses.isNotEmpty) const SizedBox(height: 16),
 
