@@ -303,22 +303,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.history),
-                    title: Text('expense_history'.tr),
-                    subtitle: Text('view_all_expenses'.tr),
+                    title: Text('history'.tr),
+                    subtitle: Text('view_expense_income_history'.tr),
                     onTap: () async {
                       Navigator.pop(context);
                       await Get.toNamed('/history');
-                      // Reopen drawer after returning
-                      _scaffoldKey.currentState?.openDrawer();
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.trending_up),
-                    title: Text('income_history'.tr),
-                    subtitle: Text('view_all_incomes'.tr),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await Get.toNamed('/income-history');
                       // Reopen drawer after returning
                       _scaffoldKey.currentState?.openDrawer();
                     },

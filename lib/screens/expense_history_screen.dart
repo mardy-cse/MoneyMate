@@ -190,14 +190,8 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Expense History'),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: Column(
-        children: [
+    return Column(
+      children: [
           // Search Bar
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -509,7 +503,6 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
             ),
           ),
         ],
-      ),
     );
   }
 }

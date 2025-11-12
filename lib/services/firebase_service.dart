@@ -29,7 +29,7 @@ class FirebaseService extends GetxService {
     currentUser.value = _auth.currentUser;
     _auth.authStateChanges().listen((User? user) {
       currentUser.value = user;
-      
+
       // Start/stop real-time sync based on user login status
       if (user != null && realtimeSyncEnabled.value) {
         startRealtimeSync();
@@ -62,80 +62,85 @@ class FirebaseService extends GetxService {
         .collection('expenses')
         .snapshots()
         .listen(
-      (snapshot) async {
-        if (snapshot.metadata.hasPendingWrites) {
-          // Skip local writes to avoid duplicate syncs
-          return;
-        }
+          (snapshot) async {
+            if (snapshot.metadata.hasPendingWrites) {
+              // Skip local writes to avoid duplicate syncs
+              return;
+            }
 
-        print('Firestore snapshot received: ${snapshot.docChanges.length} changes');
+            print(
+              'Firestore snapshot received: ${snapshot.docChanges.length} changes',
+            );
 
-        for (var change in snapshot.docChanges) {
-          try {
-            if (change.type == DocumentChangeType.added ||
-                change.type == DocumentChangeType.modified) {
-              // Add or update expense in local database
-              final expense = Expense.fromMap(change.doc.data()!);
-              
-              // Check if expense already exists locally
-              final existingExpenses = await _dbHelper.getExpenses();
-              final exists = existingExpenses.any((e) => e.id == expense.id);
-
-              if (exists) {
-                await _dbHelper.updateExpense(expense);
-                print('Updated expense: ${expense.id}');
-              } else {
-                await _dbHelper.insertExpense(expense);
-                print('Added expense: ${expense.id}');
-              }
-
-              // Refresh ExpenseController
+            for (var change in snapshot.docChanges) {
               try {
-                final expenseController = Get.find<ExpenseController>();
-                await expenseController.fetchExpenses();
-              } catch (e) {
-                print('Error refreshing ExpenseController: $e');
-              }
-            } else if (change.type == DocumentChangeType.removed) {
-              // Delete expense from local database
-              final firestoreDocId = change.doc.id;
-              
-              // Find the expense by Firestore doc id and delete by SQLite internal id
-              final existingExpenses = await _dbHelper.getExpenses();
-              
-              // Firestore doc ID is stored in the 'id' field as string
-              // We need to find the expense and use its SQLite id to delete
-              for (var expense in existingExpenses) {
-                // Compare Firestore ID (stored as string in expense.id field)
-                if (expense.id.toString() == firestoreDocId) {
-                  if (expense.id != null) {
-                    await _dbHelper.deleteExpense(expense.id!);
-                    print('Deleted expense: $firestoreDocId');
+                if (change.type == DocumentChangeType.added ||
+                    change.type == DocumentChangeType.modified) {
+                  // Add or update expense in local database
+                  final expense = Expense.fromMap(change.doc.data()!);
 
-                    // Refresh ExpenseController
-                    try {
-                      final expenseController = Get.find<ExpenseController>();
-                      await expenseController.fetchExpenses();
-                    } catch (e) {
-                      print('Error refreshing ExpenseController: $e');
+                  // Check if expense already exists locally
+                  final existingExpenses = await _dbHelper.getExpenses();
+                  final exists = existingExpenses.any(
+                    (e) => e.id == expense.id,
+                  );
+
+                  if (exists) {
+                    await _dbHelper.updateExpense(expense);
+                    print('Updated expense: ${expense.id}');
+                  } else {
+                    await _dbHelper.insertExpense(expense);
+                    print('Added expense: ${expense.id}');
+                  }
+
+                  // Refresh ExpenseController
+                  try {
+                    final expenseController = Get.find<ExpenseController>();
+                    await expenseController.fetchExpenses();
+                  } catch (e) {
+                    print('Error refreshing ExpenseController: $e');
+                  }
+                } else if (change.type == DocumentChangeType.removed) {
+                  // Delete expense from local database
+                  final firestoreDocId = change.doc.id;
+
+                  // Find the expense by Firestore doc id and delete by SQLite internal id
+                  final existingExpenses = await _dbHelper.getExpenses();
+
+                  // Firestore doc ID is stored in the 'id' field as string
+                  // We need to find the expense and use its SQLite id to delete
+                  for (var expense in existingExpenses) {
+                    // Compare Firestore ID (stored as string in expense.id field)
+                    if (expense.id.toString() == firestoreDocId) {
+                      if (expense.id != null) {
+                        await _dbHelper.deleteExpense(expense.id!);
+                        print('Deleted expense: $firestoreDocId');
+
+                        // Refresh ExpenseController
+                        try {
+                          final expenseController =
+                              Get.find<ExpenseController>();
+                          await expenseController.fetchExpenses();
+                        } catch (e) {
+                          print('Error refreshing ExpenseController: $e');
+                        }
+                      }
+                      break;
                     }
                   }
-                  break;
                 }
+              } catch (e) {
+                print('Error processing Firestore change: $e');
               }
             }
-          } catch (e) {
-            print('Error processing Firestore change: $e');
-          }
-        }
 
-        // Update last sync time
-        lastSyncTime.value = DateTime.now().toString();
-      },
-      onError: (error) {
-        print('Error in real-time sync: $error');
-      },
-    );
+            // Update last sync time
+            lastSyncTime.value = DateTime.now().toString();
+          },
+          onError: (error) {
+            print('Error in real-time sync: $error');
+          },
+        );
   }
 
   // Stop real-time sync listener
@@ -188,7 +193,7 @@ class FirebaseService extends GetxService {
 
       // Reload user to get updated display name
       await userCredential.user?.reload();
-      
+
       // Update currentUser with fresh data
       currentUser.value = _auth.currentUser;
 
@@ -213,7 +218,7 @@ class FirebaseService extends GetxService {
 
       isLoading.value = false;
       return {
-        'success': true, 
+        'success': true,
         'message': 'Account created successfully',
         'user': currentUser.value,
       };
@@ -267,12 +272,15 @@ class FirebaseService extends GetxService {
 
       if (userDoc.exists) {
         final userData = userDoc.data();
-        final name = userData?['name'] ?? userCredential.user?.displayName ?? '';
-        final userEmail = userData?['email'] ?? userCredential.user?.email ?? '';
+        final name =
+            userData?['name'] ?? userCredential.user?.displayName ?? '';
+        final userEmail =
+            userData?['email'] ?? userCredential.user?.email ?? '';
 
         // Sync profile to PersonalizationController
         try {
-          final personalizationController = Get.find<PersonalizationController>();
+          final personalizationController =
+              Get.find<PersonalizationController>();
           await personalizationController.syncFromFirebaseUser(
             name: name,
             email: userEmail,
@@ -368,7 +376,10 @@ class FirebaseService extends GetxService {
         if (e.code == 'wrong-password') {
           return {'success': false, 'message': 'Current password is incorrect'};
         }
-        return {'success': false, 'message': 'Authentication failed: ${e.message}'};
+        return {
+          'success': false,
+          'message': 'Authentication failed: ${e.message}',
+        };
       }
 
       // Change password

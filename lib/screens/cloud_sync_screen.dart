@@ -82,10 +82,7 @@ class _CloudSyncScreenState extends State<CloudSyncScreen>
             '• Skip: Continue without syncing',
           ),
           actions: [
-            TextButton(
-              onPressed: () => Get.back(),
-              child: const Text('Skip'),
-            ),
+            TextButton(onPressed: () => Get.back(), child: const Text('Skip')),
             TextButton(
               onPressed: () {
                 Get.back();
@@ -181,7 +178,7 @@ class _CloudSyncScreenState extends State<CloudSyncScreen>
 
       // Refresh the currentUser to ensure profile is populated
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       Get.snackbar(
         'Success',
         result['message'],
@@ -709,7 +706,7 @@ class _CloudSyncScreenState extends State<CloudSyncScreen>
                     value: _firebaseService.realtimeSyncEnabled.value,
                     onChanged: (value) {
                       _firebaseService.toggleRealtimeSync(value);
-                      
+
                       Get.snackbar(
                         value ? 'Enabled' : 'Disabled',
                         value

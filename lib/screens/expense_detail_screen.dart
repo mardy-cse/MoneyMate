@@ -531,7 +531,9 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                               decoration: BoxDecoration(
                                 color: Colors.orange.shade50,
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.orange.shade200),
+                                border: Border.all(
+                                  color: Colors.orange.shade200,
+                                ),
                               ),
                               child: Row(
                                 children: [

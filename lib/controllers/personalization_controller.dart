@@ -318,7 +318,7 @@ class PersonalizationController extends GetxController {
 
         await prefs.setString(_userNameKey, name);
         await prefs.setString(_userEmailKey, email);
-        
+
         debugPrint('Profile synced from Firebase: $name, $email');
       }
     } catch (e) {

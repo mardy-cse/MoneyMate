@@ -147,134 +147,110 @@ class _IncomeHistoryScreenState extends State<IncomeHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('income_history'.tr),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: Obx(() {
-        // Trigger rebuild when expenses change
-        controller.expenses.length;
+    return Obx(() {
+      // Trigger rebuild when expenses change
+      controller.expenses.length;
 
-        return Column(
-          children: [
-            // Search and Filter Section
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  // Search Bar
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'search_incomes'.tr,
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                _searchController.clear();
-                                _filterIncomes();
-                              },
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+      return Column(
+        children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by title or category...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _filterIncomes();
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onChanged: (value) => _filterIncomes(),
+            ),
+          ),
+
+          // Date Range Filter
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _selectDateRange,
+                    icon: const Icon(Icons.date_range),
+                    label: Text(
+                      _startDate != null && _endDate != null
+                          ? '${_formatDate(_startDate!)} - ${_formatDate(_endDate!)}'
+                          : 'Select Date Range',
+                      style: const TextStyle(fontSize: 12),
                     ),
-                    onChanged: (value) => _filterIncomes(),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
-                  const SizedBox(height: 12),
-
-                  // Filter Buttons Row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _selectDateRange,
-                          icon: const Icon(Icons.date_range),
-                          label: Text(
-                            _startDate != null && _endDate != null
-                                ? '${_formatDate(_startDate!)} - ${_formatDate(_endDate!)}'
-                                : 'date_range'.tr,
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-                      if (_startDate != null && _endDate != null) ...[
-                        const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: _clearDateFilter,
-                          icon: const Icon(Icons.clear),
-                          tooltip: 'Clear filter',
-                        ),
-                      ],
-                    ],
+                ),
+                if (_startDate != null && _endDate != null) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: _clearDateFilter,
+                    icon: const Icon(Icons.clear),
+                    tooltip: 'Clear date filter',
                   ),
                 ],
-              ),
+              ],
             ),
+          ),
+          const SizedBox(height: 16),
 
-            // Summary Section
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.shade200),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${_filteredIncomes.length} ${'incomes'.tr}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'total_income'.tr,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                    ],
+          // Results Summary
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${_filteredIncomes.length} incomes',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
                   ),
+                ),
+                if (_filteredIncomes.isNotEmpty)
                   Text(
                     'Total: ${_formatCurrency(_filteredIncomes.fold(0.0, (sum, income) => sum + income.amount.abs()))}',
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
                       color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   ),
-                ],
-              ),
+              ],
             ),
-            const SizedBox(height: 16),
+          ),
 
-            // Income List
-            Expanded(
-              child: _filteredIncomes.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.money_off,
-                            size: 80,
-                            color: Colors.grey.shade400,
-                          ),
+          const SizedBox(height: 8),
+
+          // Income List
+          Expanded(
+            child: _filteredIncomes.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.money_off,
+                          size: 80,
+                          color: Colors.grey.shade400,
+                        ),
                           const SizedBox(height: 16),
                           Text(
                             'no_incomes_found'.tr,
@@ -476,8 +452,7 @@ class _IncomeHistoryScreenState extends State<IncomeHistoryScreen> {
                     ),
             ),
           ],
-        );
-      }),
-    );
+      );
+    });
   }
 }
