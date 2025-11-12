@@ -26,6 +26,9 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      setState(() {}); // Refresh UI when tab changes
+    });
     _loadDebts();
     _checkAndSyncFromFirebase();
   }
@@ -115,43 +118,125 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
               onPressed: _syncFromFirebase,
             ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Money Lent'),
-                  Text(
-                    _formatCurrency(_totalLent),
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-            Tab(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Money Borrowed'),
-                  Text(
-                    _formatCurrency(_totalBorrowed),
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
+          : Column(
               children: [
-                _buildDebtList(_lentDebts, 'lent'),
-                _buildDebtList(_borrowedDebts, 'borrowed'),
+                // Custom Tab Buttons
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  color: Colors.grey[200],
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _tabController.animateTo(0);
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _tabController.index == 0 
+                                  ? const Color(0xFF5F7A8F)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.arrow_upward,
+                                  color: _tabController.index == 0 
+                                      ? Colors.white 
+                                      : Colors.black,
+                                  size: 20,
+                                ),
+                                Text(
+                                  'Money Lent',
+                                  style: TextStyle(
+                                    color: _tabController.index == 0 
+                                        ? Colors.white 
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  _formatCurrency(_totalLent),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: _tabController.index == 0 
+                                        ? Colors.white 
+                                        : Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _tabController.animateTo(1);
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _tabController.index == 1 
+                                  ? const Color(0xFF5F7A8F)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.arrow_downward,
+                                  color: _tabController.index == 1 
+                                      ? Colors.white 
+                                      : Colors.black,
+                                  size: 20,
+                                ),
+                                Text(
+                                  'Money Borrowed',
+                                  style: TextStyle(
+                                    color: _tabController.index == 1 
+                                        ? Colors.white 
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  _formatCurrency(_totalBorrowed),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: _tabController.index == 1 
+                                        ? Colors.white 
+                                        : Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Tab Content
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildDebtList(_lentDebts, 'lent'),
+                      _buildDebtList(_borrowedDebts, 'borrowed'),
+                    ],
+                  ),
+                ),
               ],
             ),
       floatingActionButton: FloatingActionButton.extended(
