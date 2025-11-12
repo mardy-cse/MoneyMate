@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/expense.dart';
 import '../models/budget.dart';
+import '../models/debt.dart';
 
 class DatabaseHelper {
   // Singleton pattern
@@ -15,16 +16,66 @@ class DatabaseHelper {
 
   // Database configuration
   static const String _databaseName = 'money_mate.db';
-  static const int _databaseVersion = 4; // Incremented for imagePath column
+  static const int _databaseVersion = 5; // Incremented for debt tables
   static const String _tableName = 'expenses';
   static const String _budgetTable = 'budgets';
   static const String _goalsTable = 'saving_goals';
+  static const String _debtTable = 'debts';
+  static const String _debtPaymentTable = 'debt_payments';
 
   // Get database instance
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
+    await _ensureTablesExist(); // Ensure all tables exist
     return _database!;
+  }
+
+  // Ensure debt tables exist (for existing installations)
+  Future<void> _ensureTablesExist() async {
+    if (_database == null) return;
+    
+    try {
+      // Check if debts table exists
+      final result = await _database!.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='$_debtTable'"
+      );
+      
+      if (result.isEmpty) {
+        // Create debt tables if they don't exist
+        await _database!.execute('''
+          CREATE TABLE $_debtTable (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            personName TEXT NOT NULL,
+            amount REAL NOT NULL,
+            paidAmount REAL NOT NULL DEFAULT 0,
+            type TEXT NOT NULL,
+            description TEXT,
+            date TEXT NOT NULL,
+            dueDate TEXT,
+            phoneNumber TEXT,
+            status TEXT NOT NULL DEFAULT 'pending',
+            createdAt TEXT NOT NULL
+          )
+        ''');
+
+        await _database!.execute('''
+          CREATE TABLE $_debtPaymentTable (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            debtId INTEGER NOT NULL,
+            amount REAL NOT NULL,
+            paymentDate TEXT NOT NULL,
+            note TEXT,
+            createdAt TEXT NOT NULL,
+            FOREIGN KEY (debtId) REFERENCES $_debtTable (id) ON DELETE CASCADE
+          )
+        ''');
+        
+        print('Debt tables created successfully');
+      }
+    } catch (e) {
+      print('Error ensuring tables exist: $e');
+    }
   }
 
   // Initialize the database
@@ -73,6 +124,34 @@ class DatabaseHelper {
         createdAt TEXT NOT NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE $_debtTable (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        personName TEXT NOT NULL,
+        amount REAL NOT NULL,
+        paidAmount REAL NOT NULL DEFAULT 0,
+        type TEXT NOT NULL,
+        description TEXT,
+        date TEXT NOT NULL,
+        dueDate TEXT,
+        phoneNumber TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        createdAt TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE $_debtPaymentTable (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        debtId INTEGER NOT NULL,
+        amount REAL NOT NULL,
+        paymentDate TEXT NOT NULL,
+        note TEXT,
+        createdAt TEXT NOT NULL,
+        FOREIGN KEY (debtId) REFERENCES $_debtTable (id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   // Upgrade database
@@ -118,6 +197,35 @@ class DatabaseHelper {
         // Column may already exist, ignore error
         print('imagePath column might already exist: $e');
       }
+    }
+    if (oldVersion < 5) {
+      await db.execute('''
+        CREATE TABLE $_debtTable (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          personName TEXT NOT NULL,
+          amount REAL NOT NULL,
+          paidAmount REAL NOT NULL DEFAULT 0,
+          type TEXT NOT NULL,
+          description TEXT,
+          date TEXT NOT NULL,
+          dueDate TEXT,
+          phoneNumber TEXT,
+          status TEXT NOT NULL DEFAULT 'pending',
+          createdAt TEXT NOT NULL
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE $_debtPaymentTable (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          debtId INTEGER NOT NULL,
+          amount REAL NOT NULL,
+          paymentDate TEXT NOT NULL,
+          note TEXT,
+          createdAt TEXT NOT NULL,
+          FOREIGN KEY (debtId) REFERENCES $_debtTable (id) ON DELETE CASCADE
+        )
+      ''');
     }
   }
 
@@ -289,6 +397,39 @@ class DatabaseHelper {
     return id;
   }
 
+  // Sync goals from Firebase to local database
+  Future<void> syncGoalsFromFirebase() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final db = await database;
+      
+      // Get all goals from Firebase
+      final goalsSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('saving_goals')
+          .get();
+
+      for (var doc in goalsSnapshot.docs) {
+        final goalData = doc.data();
+        final goal = SavingGoal.fromMap(goalData);
+        
+        // Insert or update in local database
+        await db.insert(
+          _goalsTable,
+          goal.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      
+      print('Goals synced from Firebase successfully');
+    } catch (e) {
+      print('Error syncing goals from Firebase: $e');
+    }
+  }
+
   // Get all saving goals
   Future<List<SavingGoal>> getGoals() async {
     final db = await database;
@@ -364,6 +505,354 @@ class DatabaseHelper {
       }
     } catch (e) {
       print('Error deleting goal from Firebase: $e');
+    }
+  }
+
+  // ==================== DEBT/LOAN OPERATIONS ====================
+  
+  // Sync debts from Firebase to local database
+  Future<void> syncDebtsFromFirebase() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final db = await database;
+      
+      // Get all debts from Firebase
+      final debtsSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('debts')
+          .get();
+
+      for (var doc in debtsSnapshot.docs) {
+        final debtData = doc.data();
+        final debt = Debt.fromMap(debtData);
+        
+        // Insert or update in local database
+        await db.insert(
+          _debtTable,
+          debt.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+
+        // Sync payments for this debt
+        final paymentsSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('debts')
+            .doc(doc.id)
+            .collection('payments')
+            .get();
+
+        for (var paymentDoc in paymentsSnapshot.docs) {
+          final paymentData = paymentDoc.data();
+          final payment = DebtPayment.fromMap(paymentData);
+          
+          await db.insert(
+            _debtPaymentTable,
+            payment.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+      }
+      
+      print('Debts synced from Firebase successfully');
+    } catch (e) {
+      print('Error syncing debts from Firebase: $e');
+    }
+  }
+  
+  // Insert a new debt
+  Future<int> insertDebt(Debt debt) async {
+    final db = await database;
+    final id = await db.insert(
+      _debtTable,
+      debt.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    
+    // Sync to Firebase
+    await _syncDebtToFirebase(debt.copyWith(id: id));
+    
+    return id;
+  }
+
+  // Get all debts
+  Future<List<Debt>> getDebts() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      _debtTable,
+      orderBy: 'createdAt DESC',
+    );
+
+    return List.generate(maps.length, (i) {
+      return Debt.fromMap(maps[i]);
+    });
+  }
+
+  // Get debts by type ('lent' or 'borrowed')
+  Future<List<Debt>> getDebtsByType(String type) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      _debtTable,
+      where: 'type = ?',
+      whereArgs: [type],
+      orderBy: 'createdAt DESC',
+    );
+
+    return List.generate(maps.length, (i) {
+      return Debt.fromMap(maps[i]);
+    });
+  }
+
+  // Get debts by status
+  Future<List<Debt>> getDebtsByStatus(String status) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      _debtTable,
+      where: 'status = ?',
+      whereArgs: [status],
+      orderBy: 'createdAt DESC',
+    );
+
+    return List.generate(maps.length, (i) {
+      return Debt.fromMap(maps[i]);
+    });
+  }
+
+  // Get single debt by ID
+  Future<Debt?> getDebt(int id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      _debtTable,
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+    return Debt.fromMap(maps.first);
+  }
+
+  // Update a debt
+  Future<int> updateDebt(Debt debt) async {
+    final db = await database;
+    final result = await db.update(
+      _debtTable,
+      debt.toMap(),
+      where: 'id = ?',
+      whereArgs: [debt.id],
+    );
+    
+    // Sync to Firebase
+    await _syncDebtToFirebase(debt);
+    
+    return result;
+  }
+
+  // Delete a debt
+  Future<int> deleteDebt(int id) async {
+    final db = await database;
+    
+    // Delete all payments for this debt first
+    await db.delete(_debtPaymentTable, where: 'debtId = ?', whereArgs: [id]);
+    
+    // Delete the debt
+    final result = await db.delete(_debtTable, where: 'id = ?', whereArgs: [id]);
+    
+    // Delete from Firebase
+    await _deleteDebtFromFirebase(id);
+    
+    return result;
+  }
+
+  // Insert a debt payment
+  Future<int> insertDebtPayment(DebtPayment payment) async {
+    final db = await database;
+    final id = await db.insert(
+      _debtPaymentTable,
+      payment.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+
+    // Sync payment to Firebase
+    await _syncDebtPaymentToFirebase(payment.copyWith(id: id));
+
+    // Update debt's paidAmount and status
+    final debt = await getDebt(payment.debtId);
+    if (debt != null) {
+      final newPaidAmount = debt.paidAmount + payment.amount;
+      String newStatus = 'pending';
+      
+      if (newPaidAmount >= debt.amount) {
+        newStatus = 'completed';
+      } else if (newPaidAmount > 0) {
+        newStatus = 'partial';
+      }
+
+      await updateDebt(debt.copyWith(
+        paidAmount: newPaidAmount,
+        status: newStatus,
+      ));
+    }
+    
+    return id;
+  }
+
+  // Get all payments for a debt
+  Future<List<DebtPayment>> getDebtPayments(int debtId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      _debtPaymentTable,
+      where: 'debtId = ?',
+      whereArgs: [debtId],
+      orderBy: 'paymentDate DESC',
+    );
+
+    return List.generate(maps.length, (i) {
+      return DebtPayment.fromMap(maps[i]);
+    });
+  }
+
+  // Delete a debt payment
+  Future<int> deleteDebtPayment(int id, int debtId, double amount) async {
+    final db = await database;
+    
+    // Delete the payment
+    final result = await db.delete(_debtPaymentTable, where: 'id = ?', whereArgs: [id]);
+    
+    // Delete from Firebase
+    await _deleteDebtPaymentFromFirebase(id, debtId);
+    
+    // Update debt's paidAmount and status
+    final debt = await getDebt(debtId);
+    if (debt != null) {
+      final newPaidAmount = (debt.paidAmount - amount).clamp(0.0, debt.amount);
+      String newStatus = 'pending';
+      
+      if (newPaidAmount >= debt.amount) {
+        newStatus = 'completed';
+      } else if (newPaidAmount > 0) {
+        newStatus = 'partial';
+      }
+
+      await updateDebt(debt.copyWith(
+        paidAmount: newPaidAmount,
+        status: newStatus,
+      ));
+    }
+    
+    return result;
+  }
+
+  // Get total lent amount (pending + partial)
+  Future<double> getTotalLentAmount() async {
+    final db = await database;
+    final result = await db.rawQuery('''
+      SELECT SUM(amount - paidAmount) as total
+      FROM $_debtTable
+      WHERE type = 'lent' AND status != 'completed'
+    ''');
+    
+    return (result.first['total'] as double?) ?? 0.0;
+  }
+
+  // Get total borrowed amount (pending + partial)
+  Future<double> getTotalBorrowedAmount() async {
+    final db = await database;
+    final result = await db.rawQuery('''
+      SELECT SUM(amount - paidAmount) as total
+      FROM $_debtTable
+      WHERE type = 'borrowed' AND status != 'completed'
+    ''');
+    
+    return (result.first['total'] as double?) ?? 0.0;
+  }
+
+  // Sync debt to Firebase
+  Future<void> _syncDebtToFirebase(Debt debt) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('debts')
+            .doc(debt.id.toString())
+            .set(debt.toMap());
+      }
+    } catch (e) {
+      print('Error syncing debt to Firebase: $e');
+    }
+  }
+
+  // Delete debt from Firebase
+  Future<void> _deleteDebtFromFirebase(int id) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // Delete all payments for this debt
+        final paymentsSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('debts')
+            .doc(id.toString())
+            .collection('payments')
+            .get();
+        
+        for (var doc in paymentsSnapshot.docs) {
+          await doc.reference.delete();
+        }
+        
+        // Delete the debt
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('debts')
+            .doc(id.toString())
+            .delete();
+      }
+    } catch (e) {
+      print('Error deleting debt from Firebase: $e');
+    }
+  }
+
+  // Sync debt payment to Firebase
+  Future<void> _syncDebtPaymentToFirebase(DebtPayment payment) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('debts')
+            .doc(payment.debtId.toString())
+            .collection('payments')
+            .doc(payment.id.toString())
+            .set(payment.toMap());
+      }
+    } catch (e) {
+      print('Error syncing payment to Firebase: $e');
+    }
+  }
+
+  // Delete debt payment from Firebase
+  Future<void> _deleteDebtPaymentFromFirebase(int paymentId, int debtId) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('debts')
+            .doc(debtId.toString())
+            .collection('payments')
+            .doc(paymentId.toString())
+            .delete();
+      }
+    } catch (e) {
+      print('Error deleting payment from Firebase: $e');
     }
   }
 }

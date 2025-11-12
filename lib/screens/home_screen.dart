@@ -11,6 +11,7 @@ import 'budget_screen.dart';
 import 'expense_detail_screen.dart';
 import 'cloud_sync_screen.dart';
 import 'notification_screen.dart';
+import 'debt_screen.dart';
 
 // Budget Alert Model
 class BudgetAlert {
@@ -565,6 +566,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                   const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.account_balance),
+                    title: const Text('Debt/Loan Tracker'),
+                    subtitle: const Text('Track money lent & borrowed'),
+                    onTap: () async {
+                      await Get.to(() => const DebtScreen());
+                      // Keep drawer open after returning
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        if (_scaffoldKey.currentState?.isDrawerOpen == false) {
+                          _scaffoldKey.currentState?.openDrawer();
+                        }
+                      });
+                    },
+                  ),
                   ListTile(
                     leading: const Icon(Icons.cloud),
                     title: const Text('Cloud Backup & Sync'),

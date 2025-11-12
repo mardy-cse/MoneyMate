@@ -43,6 +43,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
   void initState() {
     super.initState();
     _loadData();
+    _checkAndSyncGoalsFromFirebase();
   }
 
   @override
@@ -51,6 +52,56 @@ class _BudgetScreenState extends State<BudgetScreen> {
     _weeklyBudgetController.dispose();
     _monthlyBudgetController.dispose();
     super.dispose();
+  }
+
+  // Check if we need to sync goals from Firebase
+  Future<void> _checkAndSyncGoalsFromFirebase() async {
+    final db = DatabaseHelper();
+    final existingGoals = await db.getGoals();
+    
+    // If no goals exist locally, try to sync from Firebase
+    if (existingGoals.isEmpty) {
+      await db.syncGoalsFromFirebase();
+      _loadData(); // Reload after sync
+    }
+    
+    // Also sync period budgets from Firebase
+    await _syncPeriodBudgetsFromFirebase();
+  }
+
+  // Sync period budgets from Firebase
+  Future<void> _syncPeriodBudgetsFromFirebase() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Check if local budgets are empty
+      final hasLocalBudgets = prefs.containsKey(_dailyBudgetKey) ||
+          prefs.containsKey(_weeklyBudgetKey) ||
+          prefs.containsKey(_monthlyBudgetKey);
+      
+      // Only sync from Firebase if no local budgets exist
+      if (!hasLocalBudgets) {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('period_budgets')
+            .doc('current')
+            .get();
+
+        if (doc.exists) {
+          final data = doc.data()!;
+          await prefs.setDouble(_dailyBudgetKey, data['daily_budget'] ?? 0.0);
+          await prefs.setDouble(_weeklyBudgetKey, data['weekly_budget'] ?? 0.0);
+          await prefs.setDouble(_monthlyBudgetKey, data['monthly_budget'] ?? 0.0);
+          print('Period budgets synced from Firebase');
+        }
+      }
+    } catch (e) {
+      print('Error syncing period budgets from Firebase: $e');
+    }
   }
 
   Future<void> _loadData() async {
