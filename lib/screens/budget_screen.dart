@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/budget.dart';
 import '../services/database_helper.dart';
 import '../services/currency_service.dart';
@@ -55,16 +57,22 @@ class _BudgetScreenState extends State<BudgetScreen> {
     setState(() => isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Load daily, weekly, monthly budgets
       _dailyBudget = prefs.getDouble(_dailyBudgetKey) ?? 0.0;
       _weeklyBudget = prefs.getDouble(_weeklyBudgetKey) ?? 0.0;
       _monthlyBudget = prefs.getDouble(_monthlyBudgetKey) ?? 0.0;
 
       // Set controllers
-      _dailyBudgetController.text = _dailyBudget > 0 ? _dailyBudget.toString() : '';
-      _weeklyBudgetController.text = _weeklyBudget > 0 ? _weeklyBudget.toString() : '';
-      _monthlyBudgetController.text = _monthlyBudget > 0 ? _monthlyBudget.toString() : '';
+      _dailyBudgetController.text = _dailyBudget > 0
+          ? _dailyBudget.toString()
+          : '';
+      _weeklyBudgetController.text = _weeklyBudget > 0
+          ? _weeklyBudget.toString()
+          : '';
+      _monthlyBudgetController.text = _monthlyBudget > 0
+          ? _monthlyBudget.toString()
+          : '';
 
       // Calculate spending
       await _calculateSpending();
@@ -101,7 +109,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
       // Calculate daily spending (today)
       final todayStart = DateTime(now.year, now.month, now.day);
-      
+
       _dailySpent = expenses
           .where((expense) {
             final expenseDate = DateTime(
@@ -109,7 +117,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
               expense.date.month,
               expense.date.day,
             );
-            return expenseDate.isAtSameMomentAs(todayStart) && expense.amount > 0;
+            return expenseDate.isAtSameMomentAs(todayStart) &&
+                expense.amount > 0;
           })
           .fold(0.0, (sum, expense) => sum + expense.amount);
 
@@ -129,8 +138,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
               expense.date.day,
             );
             return expenseDate.isAfter(
-              weekStart.subtract(const Duration(days: 1)),
-            ) && expense.amount > 0;
+                  weekStart.subtract(const Duration(days: 1)),
+                ) &&
+                expense.amount > 0;
           })
           .fold(0.0, (sum, expense) => sum + expense.amount);
 
@@ -145,8 +155,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
               expense.date.day,
             );
             return expenseDate.isAfter(
-              monthStart.subtract(const Duration(days: 1)),
-            ) && expense.amount > 0;
+                  monthStart.subtract(const Duration(days: 1)),
+                ) &&
+                expense.amount > 0;
           })
           .fold(0.0, (sum, expense) => sum + expense.amount);
 
@@ -181,6 +192,13 @@ class _BudgetScreenState extends State<BudgetScreen> {
         _monthlyBudget = monthlyValue;
       });
 
+      // Sync to Firebase
+      await _syncPeriodBudgetsToFirebase(
+        dailyValue,
+        weeklyValue,
+        monthlyValue,
+      );
+
       Get.snackbar(
         'Success',
         'Budgets saved successfully!',
@@ -195,6 +213,32 @@ class _BudgetScreenState extends State<BudgetScreen> {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+    }
+  }
+
+  // Sync period budgets to Firebase
+  Future<void> _syncPeriodBudgetsToFirebase(
+    double daily,
+    double weekly,
+    double monthly,
+  ) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('period_budgets')
+            .doc('current')
+            .set({
+          'daily_budget': daily,
+          'weekly_budget': weekly,
+          'monthly_budget': monthly,
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      print('Error syncing period budgets to Firebase: $e');
     }
   }
 
@@ -241,9 +285,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
     debugPrint('=== Budget Category: $category, Period: $period ===');
     debugPrint('Date Range: $startDate to $endDate');
     debugPrint('Total expenses count: ${expenses.length}');
-    
+
     for (var expense in expenses) {
-      debugPrint('Expense: ${expense.title}, Category: ${expense.category}, Amount: ${expense.amount}, Date: ${expense.date}');
+      debugPrint(
+        'Expense: ${expense.title}, Category: ${expense.category}, Amount: ${expense.amount}, Date: ${expense.date}',
+      );
     }
 
     if (category == 'Overall') {
@@ -265,8 +311,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
       }
       return match;
     });
-    
-    final total = filteredExpenses.fold<double>(0.0, (sum, expense) => sum + expense.amount);
+
+    final total = filteredExpenses.fold<double>(
+      0.0,
+      (sum, expense) => sum + expense.amount,
+    );
     debugPrint('$category spending: $total');
     return total;
   }
@@ -1202,7 +1251,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              
+
                               // Daily Budget Input
                               TextField(
                                 controller: _dailyBudgetController,
@@ -1210,11 +1259,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                   labelText: 'Daily Budget',
                                   hintText: 'Enter daily budget',
                                   prefixIcon: Obx(() {
-                                    final currencyService = CurrencyService.instance;
+                                    final currencyService =
+                                        CurrencyService.instance;
                                     return Padding(
                                       padding: const EdgeInsets.all(12.0),
                                       child: Text(
-                                        currencyService.selectedCurrencySymbol.value,
+                                        currencyService
+                                            .selectedCurrencySymbol
+                                            .value,
                                         style: const TextStyle(
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
@@ -1224,9 +1276,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                   }),
                                   border: const OutlineInputBorder(),
                                 ),
-                                keyboardType: const TextInputType.numberWithOptions(
-                                  decimal: true,
-                                ),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
                                 inputFormatters: [
                                   FilteringTextInputFormatter.allow(
                                     RegExp(r'^\d+\.?\d{0,2}'),
@@ -1242,11 +1295,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                   labelText: 'Weekly Budget',
                                   hintText: 'Enter weekly budget',
                                   prefixIcon: Obx(() {
-                                    final currencyService = CurrencyService.instance;
+                                    final currencyService =
+                                        CurrencyService.instance;
                                     return Padding(
                                       padding: const EdgeInsets.all(12.0),
                                       child: Text(
-                                        currencyService.selectedCurrencySymbol.value,
+                                        currencyService
+                                            .selectedCurrencySymbol
+                                            .value,
                                         style: const TextStyle(
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
@@ -1256,9 +1312,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                   }),
                                   border: const OutlineInputBorder(),
                                 ),
-                                keyboardType: const TextInputType.numberWithOptions(
-                                  decimal: true,
-                                ),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
                                 inputFormatters: [
                                   FilteringTextInputFormatter.allow(
                                     RegExp(r'^\d+\.?\d{0,2}'),
@@ -1274,11 +1331,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                   labelText: 'Monthly Budget',
                                   hintText: 'Enter monthly budget',
                                   prefixIcon: Obx(() {
-                                    final currencyService = CurrencyService.instance;
+                                    final currencyService =
+                                        CurrencyService.instance;
                                     return Padding(
                                       padding: const EdgeInsets.all(12.0),
                                       child: Text(
-                                        currencyService.selectedCurrencySymbol.value,
+                                        currencyService
+                                            .selectedCurrencySymbol
+                                            .value,
                                         style: const TextStyle(
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
@@ -1288,9 +1348,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                   }),
                                   border: const OutlineInputBorder(),
                                 ),
-                                keyboardType: const TextInputType.numberWithOptions(
-                                  decimal: true,
-                                ),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
                                 inputFormatters: [
                                   FilteringTextInputFormatter.allow(
                                     RegExp(r'^\d+\.?\d{0,2}'),

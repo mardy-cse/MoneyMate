@@ -83,9 +83,7 @@ class _CombinedHistoryScreenState extends State<CombinedHistoryScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: !_isExpense
-                            ? Colors.green
-                            : Colors.transparent,
+                        color: !_isExpense ? Colors.green : Colors.transparent,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(

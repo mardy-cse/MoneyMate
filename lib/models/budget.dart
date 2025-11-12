@@ -88,4 +88,23 @@ class SavingGoal {
     if (targetAmount == 0) return 0;
     return (currentAmount / targetAmount * 100).clamp(0, 100);
   }
+
+  // Copy with method for updating fields
+  SavingGoal copyWith({
+    int? id,
+    String? title,
+    double? targetAmount,
+    double? currentAmount,
+    DateTime? deadline,
+    DateTime? createdAt,
+  }) {
+    return SavingGoal(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      targetAmount: targetAmount ?? this.targetAmount,
+      currentAmount: currentAmount ?? this.currentAmount,
+      deadline: deadline ?? this.deadline,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }

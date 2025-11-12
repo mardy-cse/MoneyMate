@@ -1,13 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../controllers/expense_controller.dart';
 import '../controllers/personalization_controller.dart';
 import '../services/currency_service.dart';
+import '../services/database_helper.dart';
 import 'budget_screen.dart';
 import 'expense_detail_screen.dart';
 import 'cloud_sync_screen.dart';
+import 'notification_screen.dart';
+
+// Budget Alert Model
+class BudgetAlert {
+  final String title;
+  final double percentage;
+  final double spent;
+  final double budget;
+  final IconData icon;
+
+  BudgetAlert({
+    required this.title,
+    required this.percentage,
+    required this.spent,
+    required this.budget,
+    required this.icon,
+  });
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,10 +44,185 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  // Budget alerts
+  List<BudgetAlert> _budgetAlerts = [];
+  Set<String> _readNotifications = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBudgetAlerts();
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadBudgetAlerts() async {
+    // Load read notifications
+    final prefs = await SharedPreferences.getInstance();
+    final readList = prefs.getStringList('read_notifications') ?? [];
+    _readNotifications = readList.toSet();
+
+    final alerts = await _calculateBudgetAlerts();
+    setState(() {
+      _budgetAlerts = alerts;
+    });
+  }
+
+  int get _unreadAlertCount {
+    // Generate unique IDs for alerts to match with read notifications
+    int unreadCount = 0;
+    for (final alert in _budgetAlerts) {
+      String id = '';
+      if (alert.percentage >= 100) {
+        id =
+            '${alert.title.contains('Daily')
+                ? 'daily'
+                : alert.title.contains('Weekly')
+                ? 'weekly'
+                : 'monthly'}_100';
+      } else if (alert.percentage >= 75) {
+        id =
+            '${alert.title.contains('Daily')
+                ? 'daily'
+                : alert.title.contains('Weekly')
+                ? 'weekly'
+                : 'monthly'}_75';
+      } else if (alert.percentage >= 50) {
+        id =
+            '${alert.title.contains('Daily')
+                ? 'daily'
+                : alert.title.contains('Weekly')
+                ? 'weekly'
+                : 'monthly'}_50';
+      } else if (alert.percentage >= 25) {
+        id =
+            '${alert.title.contains('Daily')
+                ? 'daily'
+                : alert.title.contains('Weekly')
+                ? 'weekly'
+                : 'monthly'}_25';
+      }
+      if (!_readNotifications.contains(id)) {
+        unreadCount++;
+      }
+    }
+    return unreadCount;
+  }
+
+  Future<List<BudgetAlert>> _calculateBudgetAlerts() async {
+    final alerts = <BudgetAlert>[];
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final expenses = await DatabaseHelper().getExpenses();
+      final now = DateTime.now();
+
+      // Daily Budget
+      final dailyBudget = prefs.getDouble('daily_budget') ?? 0.0;
+      if (dailyBudget > 0) {
+        final todayStart = DateTime(now.year, now.month, now.day);
+        final dailySpent = expenses
+            .where((e) {
+              final expenseDate = DateTime(
+                e.date.year,
+                e.date.month,
+                e.date.day,
+              );
+              return expenseDate.isAtSameMomentAs(todayStart) && e.amount > 0;
+            })
+            .fold(0.0, (sum, e) => sum + e.amount);
+
+        final dailyPercent = (dailySpent / dailyBudget * 100);
+        if (dailyPercent >= 25) {
+          alerts.add(
+            BudgetAlert(
+              title: 'Daily Budget',
+              percentage: dailyPercent,
+              spent: dailySpent,
+              budget: dailyBudget,
+              icon: Icons.today,
+            ),
+          );
+        }
+      }
+
+      // Weekly Budget
+      final weeklyBudget = prefs.getDouble('weekly_budget') ?? 0.0;
+      if (weeklyBudget > 0) {
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        final weekStart = DateTime(
+          startOfWeek.year,
+          startOfWeek.month,
+          startOfWeek.day,
+        );
+        final weeklySpent = expenses
+            .where((e) {
+              final expenseDate = DateTime(
+                e.date.year,
+                e.date.month,
+                e.date.day,
+              );
+              return expenseDate.isAfter(
+                    weekStart.subtract(const Duration(days: 1)),
+                  ) &&
+                  e.amount > 0;
+            })
+            .fold(0.0, (sum, e) => sum + e.amount);
+
+        final weeklyPercent = (weeklySpent / weeklyBudget * 100);
+        if (weeklyPercent >= 25) {
+          alerts.add(
+            BudgetAlert(
+              title: 'Weekly Budget',
+              percentage: weeklyPercent,
+              spent: weeklySpent,
+              budget: weeklyBudget,
+              icon: Icons.calendar_view_week,
+            ),
+          );
+        }
+      }
+
+      // Monthly Budget
+      final monthlyBudget = prefs.getDouble('monthly_budget') ?? 0.0;
+      if (monthlyBudget > 0) {
+        final monthStart = DateTime(now.year, now.month, 1);
+        final monthlySpent = expenses
+            .where((e) {
+              final expenseDate = DateTime(
+                e.date.year,
+                e.date.month,
+                e.date.day,
+              );
+              return expenseDate.isAfter(
+                    monthStart.subtract(const Duration(days: 1)),
+                  ) &&
+                  e.amount > 0;
+            })
+            .fold(0.0, (sum, e) => sum + e.amount);
+
+        final monthlyPercent = (monthlySpent / monthlyBudget * 100);
+        if (monthlyPercent >= 25) {
+          alerts.add(
+            BudgetAlert(
+              title: 'Monthly Budget',
+              percentage: monthlyPercent,
+              spent: monthlySpent,
+              budget: monthlyBudget,
+              icon: Icons.calendar_month,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error calculating budget alerts: $e');
+    }
+
+    return alerts;
   }
 
   String _formatCurrency(double amount) {
@@ -95,17 +290,51 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          // Theme Toggle Button
-          Obx(() {
-            final isDark = personalizationController.isDarkMode.value;
-            return IconButton(
-              onPressed: () {
-                personalizationController.toggleDarkMode(!isDark);
-              },
-              icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, size: 24),
-              tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
-            );
-          }),
+          // Budget Notification Icon
+          IconButton(
+            onPressed: () {
+              // Navigate to Notification Screen and reload alerts when returning
+              Get.to(() => const NotificationScreen())?.then((_) {
+                _loadBudgetAlerts();
+              });
+            },
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.notifications_outlined, size: 24),
+                if (_unreadAlertCount > 0)
+                  Positioned(
+                    right: -4,
+                    top: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: _budgetAlerts.any((a) => a.percentage >= 100)
+                            ? Colors.red
+                            : _budgetAlerts.any((a) => a.percentage >= 75)
+                            ? Colors.orange
+                            : Colors.blue,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        '$_unreadAlertCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            tooltip: 'Budget Notifications',
+          ),
         ],
       ),
       drawer: Drawer(

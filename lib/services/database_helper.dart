@@ -1,5 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/expense.dart';
 import '../models/budget.dart';
 
@@ -272,13 +274,19 @@ class DatabaseHelper {
   // ========== Saving Goals Methods ==========
 
   // Insert a saving goal
+  // Insert a new saving goal
   Future<int> insertGoal(SavingGoal goal) async {
     final db = await database;
-    return await db.insert(
+    final id = await db.insert(
       _goalsTable,
       goal.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    
+    // Sync to Firebase
+    await _syncGoalToFirebase(goal.copyWith(id: id));
+    
+    return id;
   }
 
   // Get all saving goals
@@ -297,17 +305,61 @@ class DatabaseHelper {
   // Update a saving goal
   Future<int> updateGoal(SavingGoal goal) async {
     final db = await database;
-    return await db.update(
+    final result = await db.update(
       _goalsTable,
       goal.toMap(),
       where: 'id = ?',
       whereArgs: [goal.id],
     );
+    
+    // Sync to Firebase
+    await _syncGoalToFirebase(goal);
+    
+    return result;
   }
 
   // Delete a saving goal
   Future<int> deleteGoal(int id) async {
     final db = await database;
-    return await db.delete(_goalsTable, where: 'id = ?', whereArgs: [id]);
+    final result = await db.delete(_goalsTable, where: 'id = ?', whereArgs: [id]);
+    
+    // Delete from Firebase
+    await _deleteGoalFromFirebase(id);
+    
+    return result;
+  }
+
+  // Sync goal to Firebase
+  Future<void> _syncGoalToFirebase(SavingGoal goal) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('saving_goals')
+            .doc(goal.id.toString())
+            .set(goal.toMap());
+      }
+    } catch (e) {
+      print('Error syncing goal to Firebase: $e');
+    }
+  }
+
+  // Delete goal from Firebase
+  Future<void> _deleteGoalFromFirebase(int id) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('saving_goals')
+            .doc(id.toString())
+            .delete();
+      }
+    } catch (e) {
+      print('Error deleting goal from Firebase: $e');
+    }
   }
 }
