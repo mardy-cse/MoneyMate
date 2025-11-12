@@ -284,10 +284,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: Text('summary'.tr),
                     subtitle: Text('view_summary'.tr),
                     onTap: () async {
-                      Navigator.pop(context);
                       await Get.toNamed('/monthly-summary');
-                      // Reopen drawer after returning
-                      _scaffoldKey.currentState?.openDrawer();
+                      // Keep drawer open after returning
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        if (_scaffoldKey.currentState?.isDrawerOpen == false) {
+                          _scaffoldKey.currentState?.openDrawer();
+                        }
+                      });
                     },
                   ),
                   ListTile(
@@ -295,10 +298,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: Text('analytics'.tr),
                     subtitle: Text('view_spending_analytics'.tr),
                     onTap: () async {
-                      Navigator.pop(context);
                       await Get.toNamed('/analytics');
-                      // Reopen drawer after returning
-                      _scaffoldKey.currentState?.openDrawer();
+                      // Keep drawer open after returning
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        if (_scaffoldKey.currentState?.isDrawerOpen == false) {
+                          _scaffoldKey.currentState?.openDrawer();
+                        }
+                      });
                     },
                   ),
                   ListTile(
@@ -306,10 +312,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: Text('history'.tr),
                     subtitle: Text('view_expense_income_history'.tr),
                     onTap: () async {
-                      Navigator.pop(context);
                       await Get.toNamed('/history');
-                      // Reopen drawer after returning
-                      _scaffoldKey.currentState?.openDrawer();
+                      // Keep drawer open after returning
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        if (_scaffoldKey.currentState?.isDrawerOpen == false) {
+                          _scaffoldKey.currentState?.openDrawer();
+                        }
+                      });
                     },
                   ),
                   ListTile(
@@ -317,10 +326,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: Text('budgets_goals'.tr),
                     subtitle: Text('manage_budgets_savings'.tr),
                     onTap: () async {
-                      Navigator.pop(context);
                       await Get.to(() => const BudgetScreen());
-                      // Reopen drawer after returning
-                      _scaffoldKey.currentState?.openDrawer();
+                      // Keep drawer open after returning
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        if (_scaffoldKey.currentState?.isDrawerOpen == false) {
+                          _scaffoldKey.currentState?.openDrawer();
+                        }
+                      });
                     },
                   ),
                   const Divider(),
@@ -329,10 +341,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: const Text('Cloud Backup & Sync'),
                     subtitle: const Text('Backup and sync your data'),
                     onTap: () async {
-                      Navigator.pop(context);
                       await Get.to(() => const CloudSyncScreen());
-                      // Reopen drawer after returning
-                      _scaffoldKey.currentState?.openDrawer();
+                      // Keep drawer open after returning
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        if (_scaffoldKey.currentState?.isDrawerOpen == false) {
+                          _scaffoldKey.currentState?.openDrawer();
+                        }
+                      });
                     },
                   ),
                   ListTile(
@@ -340,11 +355,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: Text('settings'.tr),
                     subtitle: Text('app_settings_budget'.tr),
                     onTap: () async {
-                      Navigator.pop(context);
                       await Get.toNamed('/settings');
                       controller.fetchExpenses();
-                      // Reopen drawer after returning
-                      _scaffoldKey.currentState?.openDrawer();
+                      // Keep drawer open after returning
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        if (_scaffoldKey.currentState?.isDrawerOpen == false) {
+                          _scaffoldKey.currentState?.openDrawer();
+                        }
+                      });
                     },
                   ),
                   const Divider(),
