@@ -193,11 +193,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
       });
 
       // Sync to Firebase
-      await _syncPeriodBudgetsToFirebase(
-        dailyValue,
-        weeklyValue,
-        monthlyValue,
-      );
+      await _syncPeriodBudgetsToFirebase(dailyValue, weeklyValue, monthlyValue);
 
       Get.snackbar(
         'Success',
@@ -231,11 +227,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
             .collection('period_budgets')
             .doc('current')
             .set({
-          'daily_budget': daily,
-          'weekly_budget': weekly,
-          'monthly_budget': monthly,
-          'updated_at': FieldValue.serverTimestamp(),
-        });
+              'daily_budget': daily,
+              'weekly_budget': weekly,
+              'monthly_budget': monthly,
+              'updated_at': FieldValue.serverTimestamp(),
+            });
       }
     } catch (e) {
       print('Error syncing period budgets to Firebase: $e');

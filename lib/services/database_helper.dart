@@ -282,10 +282,10 @@ class DatabaseHelper {
       goal.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    
+
     // Sync to Firebase
     await _syncGoalToFirebase(goal.copyWith(id: id));
-    
+
     return id;
   }
 
@@ -311,21 +311,25 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [goal.id],
     );
-    
+
     // Sync to Firebase
     await _syncGoalToFirebase(goal);
-    
+
     return result;
   }
 
   // Delete a saving goal
   Future<int> deleteGoal(int id) async {
     final db = await database;
-    final result = await db.delete(_goalsTable, where: 'id = ?', whereArgs: [id]);
-    
+    final result = await db.delete(
+      _goalsTable,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
     // Delete from Firebase
     await _deleteGoalFromFirebase(id);
-    
+
     return result;
   }
 
