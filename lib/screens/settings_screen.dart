@@ -125,22 +125,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           ListTile(
                             leading: Icon(
-                              Icons.person,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            title: const Text('My Profile'),
-                            subtitle: const Text(
-                              'Manage your personal information',
-                            ),
-                            trailing: const Icon(
-                              Icons.arrow_forward_ios,
-                              size: 16,
-                            ),
-                            onTap: () => Get.toNamed('/profile'),
-                          ),
-                          const Divider(height: 1),
-                          ListTile(
-                            leading: Icon(
                               Icons.palette,
                               color: Theme.of(context).colorScheme.primary,
                             ),

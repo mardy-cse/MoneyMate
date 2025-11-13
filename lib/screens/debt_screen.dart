@@ -14,7 +14,8 @@ class DebtScreen extends StatefulWidget {
   State<DebtScreen> createState() => _DebtScreenState();
 }
 
-class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateMixin {
+class _DebtScreenState extends State<DebtScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Debt> _lentDebts = [];
   List<Debt> _borrowedDebts = [];
@@ -51,7 +52,7 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
   Future<void> _checkAndSyncFromFirebase() async {
     final db = DatabaseHelper();
     final debts = await db.getDebts();
-    
+
     // If local database is empty, sync from Firebase
     if (debts.isEmpty) {
       setState(() => _isSyncing = true);
@@ -63,9 +64,9 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
 
   Future<void> _loadDebts() async {
     setState(() => _isLoading = true);
-    
+
     final db = DatabaseHelper();
-    
+
     // Load from local database
     final lent = await db.getDebtsByType('lent');
     final borrowed = await db.getDebtsByType('borrowed');
@@ -91,14 +92,16 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
       } else {
         _filteredLentDebts = _lentDebts.where((debt) {
           return debt.personName.toLowerCase().contains(query.toLowerCase()) ||
-                 (debt.phoneNumber?.contains(query) ?? false) ||
-                 (debt.description?.toLowerCase().contains(query.toLowerCase()) ?? false);
+              (debt.phoneNumber?.contains(query) ?? false) ||
+              (debt.description?.toLowerCase().contains(query.toLowerCase()) ??
+                  false);
         }).toList();
-        
+
         _filteredBorrowedDebts = _borrowedDebts.where((debt) {
           return debt.personName.toLowerCase().contains(query.toLowerCase()) ||
-                 (debt.phoneNumber?.contains(query) ?? false) ||
-                 (debt.description?.toLowerCase().contains(query.toLowerCase()) ?? false);
+              (debt.phoneNumber?.contains(query) ?? false) ||
+              (debt.description?.toLowerCase().contains(query.toLowerCase()) ??
+                  false);
         }).toList();
       }
     });
@@ -107,13 +110,13 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
   // Manual sync from Firebase
   Future<void> _syncFromFirebase() async {
     setState(() => _isSyncing = true);
-    
+
     final db = DatabaseHelper();
     await db.syncDebtsFromFirebase();
     await _loadDebts();
-    
+
     setState(() => _isSyncing = false);
-    
+
     Get.snackbar(
       'Success',
       'Synced from cloud successfully',
@@ -139,7 +142,10 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
               child: SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
               ),
             )
           else
@@ -169,18 +175,20 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
-                              color: _tabController.index == 0 
+                              color: _tabController.index == 0
                                   ? const Color(0xFF5F7A8F)
-                                  : Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.grey.shade800
-                                      : Colors.white,
+                                  : Theme.of(context).brightness ==
+                                        Brightness.dark
+                                  ? Colors.grey.shade800
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: _tabController.index == 0
                                     ? const Color(0xFF5F7A8F)
-                                    : Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.grey.shade700
-                                        : Colors.grey.shade300,
+                                    : Theme.of(context).brightness ==
+                                          Brightness.dark
+                                    ? Colors.grey.shade700
+                                    : Colors.grey.shade300,
                                 width: 1,
                               ),
                             ),
@@ -188,21 +196,23 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                               children: [
                                 Icon(
                                   Icons.arrow_upward,
-                                  color: _tabController.index == 0 
-                                      ? Colors.white 
-                                      : Theme.of(context).brightness == Brightness.dark
-                                          ? Colors.white
-                                          : Colors.black,
+                                  color: _tabController.index == 0
+                                      ? Colors.white
+                                      : Theme.of(context).brightness ==
+                                            Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black,
                                   size: 20,
                                 ),
                                 Text(
                                   'Money Lent',
                                   style: TextStyle(
-                                    color: _tabController.index == 0 
-                                        ? Colors.white 
-                                        : Theme.of(context).brightness == Brightness.dark
-                                            ? Colors.white
-                                            : Colors.black,
+                                    color: _tabController.index == 0
+                                        ? Colors.white
+                                        : Theme.of(context).brightness ==
+                                              Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -210,11 +220,12 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                                   _formatCurrency(_totalLent),
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: _tabController.index == 0 
-                                        ? Colors.white 
-                                        : Theme.of(context).brightness == Brightness.dark
-                                            ? Colors.white
-                                            : Colors.black,
+                                    color: _tabController.index == 0
+                                        ? Colors.white
+                                        : Theme.of(context).brightness ==
+                                              Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black,
                                   ),
                                 ),
                               ],
@@ -233,18 +244,20 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
-                              color: _tabController.index == 1 
+                              color: _tabController.index == 1
                                   ? const Color(0xFF5F7A8F)
-                                  : Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.grey.shade800
-                                      : Colors.white,
+                                  : Theme.of(context).brightness ==
+                                        Brightness.dark
+                                  ? Colors.grey.shade800
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: _tabController.index == 1
                                     ? const Color(0xFF5F7A8F)
-                                    : Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.grey.shade700
-                                        : Colors.grey.shade300,
+                                    : Theme.of(context).brightness ==
+                                          Brightness.dark
+                                    ? Colors.grey.shade700
+                                    : Colors.grey.shade300,
                                 width: 1,
                               ),
                             ),
@@ -252,21 +265,23 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                               children: [
                                 Icon(
                                   Icons.arrow_downward,
-                                  color: _tabController.index == 1 
-                                      ? Colors.white 
-                                      : Theme.of(context).brightness == Brightness.dark
-                                          ? Colors.white
-                                          : Colors.black,
+                                  color: _tabController.index == 1
+                                      ? Colors.white
+                                      : Theme.of(context).brightness ==
+                                            Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black,
                                   size: 20,
                                 ),
                                 Text(
                                   'Money Borrowed',
                                   style: TextStyle(
-                                    color: _tabController.index == 1 
-                                        ? Colors.white 
-                                        : Theme.of(context).brightness == Brightness.dark
-                                            ? Colors.white
-                                            : Colors.black,
+                                    color: _tabController.index == 1
+                                        ? Colors.white
+                                        : Theme.of(context).brightness ==
+                                              Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -274,11 +289,12 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                                   _formatCurrency(_totalBorrowed),
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: _tabController.index == 1 
-                                        ? Colors.white 
-                                        : Theme.of(context).brightness == Brightness.dark
-                                            ? Colors.white
-                                            : Colors.black,
+                                    color: _tabController.index == 1
+                                        ? Colors.white
+                                        : Theme.of(context).brightness ==
+                                              Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black,
                                   ),
                                 ),
                               ],
@@ -387,7 +403,9 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      debt.type == 'lent' ? Icons.arrow_upward : Icons.arrow_downward,
+                      debt.type == 'lent'
+                          ? Icons.arrow_upward
+                          : Icons.arrow_downward,
                       color: color,
                       size: 24,
                     ),
@@ -416,7 +434,10 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: _getStatusColor(debt.status).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -502,8 +523,12 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                           DateFormat('MMM d, yyyy').format(debt.dueDate!),
                           style: TextStyle(
                             fontSize: 12,
-                            color: debt.isOverdue ? Colors.red : Colors.grey[600],
-                            fontWeight: debt.isOverdue ? FontWeight.bold : FontWeight.normal,
+                            color: debt.isOverdue
+                                ? Colors.red
+                                : Colors.grey[600],
+                            fontWeight: debt.isOverdue
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                         ),
                       ],
@@ -606,7 +631,9 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                   ),
                   keyboardType: TextInputType.number,
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\d+\.?\d{0,2}'),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -624,7 +651,9 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.calendar_today),
                   title: const Text('Date'),
-                  subtitle: Text(DateFormat('MMM d, yyyy').format(selectedDate)),
+                  subtitle: Text(
+                    DateFormat('MMM d, yyyy').format(selectedDate),
+                  ),
                   trailing: const Icon(Icons.edit),
                   onTap: () async {
                     final picked = await showDatePicker(
@@ -663,7 +692,9 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: context,
-                      initialDate: selectedDueDate ?? DateTime.now().add(const Duration(days: 30)),
+                      initialDate:
+                          selectedDueDate ??
+                          DateTime.now().add(const Duration(days: 30)),
                       firstDate: DateTime.now(),
                       lastDate: DateTime.now().add(const Duration(days: 3650)),
                     );
@@ -682,7 +713,8 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
             ),
             ElevatedButton(
               onPressed: () async {
-                if (nameController.text.isEmpty || amountController.text.isEmpty) {
+                if (nameController.text.isEmpty ||
+                    amountController.text.isEmpty) {
                   Get.snackbar('Error', 'Please fill required fields');
                   return;
                 }
@@ -696,7 +728,9 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
                       : null,
                   date: selectedDate,
                   dueDate: selectedDueDate,
-                  phoneNumber: phoneController.text.isNotEmpty ? phoneController.text : null,
+                  phoneNumber: phoneController.text.isNotEmpty
+                      ? phoneController.text
+                      : null,
                   createdAt: DateTime.now(),
                 );
 
@@ -722,9 +756,7 @@ class _DebtScreenState extends State<DebtScreen> with SingleTickerProviderStateM
   void _showDebtDetails(Debt debt) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => DebtDetailsScreen(debt: debt),
-      ),
+      MaterialPageRoute(builder: (context) => DebtDetailsScreen(debt: debt)),
     ).then((_) => _loadDebts());
   }
 }
@@ -753,7 +785,7 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    
+
     final db = DatabaseHelper();
     final debt = await db.getDebt(widget.debt.id!);
     final payments = await db.getDebtPayments(widget.debt.id!);
@@ -879,11 +911,11 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Info Section
                   _buildInfoSection(),
                   const SizedBox(height: 20),
-                  
+
                   // Payment History
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -911,7 +943,11 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
                             child: Center(
                               child: Column(
                                 children: [
-                                  Icon(Icons.payment, size: 48, color: Colors.grey[400]),
+                                  Icon(
+                                    Icons.payment,
+                                    size: 48,
+                                    color: Colors.grey[400],
+                                  ),
                                   const SizedBox(height: 8),
                                   Text(
                                     'No payments yet',
@@ -928,20 +964,30 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
                               margin: const EdgeInsets.only(bottom: 8),
                               child: ListTile(
                                 leading: CircleAvatar(
-                                  backgroundColor: Colors.green.withOpacity(0.1),
-                                  child: const Icon(Icons.check, color: Colors.green),
+                                  backgroundColor: Colors.green.withOpacity(
+                                    0.1,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check,
+                                    color: Colors.green,
+                                  ),
                                 ),
                                 title: Text(
                                   _formatCurrency(payment.amount),
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      DateFormat('MMM d, yyyy').format(payment.paymentDate),
+                                      DateFormat(
+                                        'MMM d, yyyy',
+                                      ).format(payment.paymentDate),
                                     ),
-                                    if (payment.note != null && payment.note!.isNotEmpty)
+                                    if (payment.note != null &&
+                                        payment.note!.isNotEmpty)
                                       Text(
                                         payment.note!,
                                         style: TextStyle(
@@ -952,8 +998,12 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
                                   ],
                                 ),
                                 trailing: IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () => _confirmDeletePayment(payment),
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                  ),
+                                  onPressed: () =>
+                                      _confirmDeletePayment(payment),
                                 ),
                               ),
                             );
@@ -968,10 +1018,7 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
   Widget _buildInfoColumn(String label, String value, Color color) {
     return Column(
       children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
         const SizedBox(height: 4),
         Text(
           value,
@@ -992,8 +1039,11 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInfoRow(Icons.calendar_today, 'Date',
-                DateFormat('MMM d, yyyy').format(_debt.date)),
+            _buildInfoRow(
+              Icons.calendar_today,
+              'Date',
+              DateFormat('MMM d, yyyy').format(_debt.date),
+            ),
             if (_debt.dueDate != null) ...[
               const Divider(),
               _buildInfoRow(
@@ -1024,7 +1074,12 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, {Color? textColor}) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value, {
+    Color? textColor,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -1045,7 +1100,9 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
               style: TextStyle(
                 fontSize: 14,
                 color: textColor ?? Colors.grey[800],
-                fontWeight: textColor != null ? FontWeight.bold : FontWeight.normal,
+                fontWeight: textColor != null
+                    ? FontWeight.bold
+                    : FontWeight.normal,
               ),
             ),
           ),
@@ -1084,13 +1141,16 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
                 TextField(
                   controller: amountController,
                   decoration: InputDecoration(
-                    labelText: 'Amount (Max: ${_formatCurrency(_debt.remainingAmount)})',
+                    labelText:
+                        'Amount (Max: ${_formatCurrency(_debt.remainingAmount)})',
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.money),
                   ),
                   keyboardType: TextInputType.number,
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\d+\.?\d{0,2}'),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -1108,7 +1168,9 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.calendar_today),
                   title: const Text('Payment Date'),
-                  subtitle: Text(DateFormat('MMM d, yyyy').format(selectedDate)),
+                  subtitle: Text(
+                    DateFormat('MMM d, yyyy').format(selectedDate),
+                  ),
                   trailing: const Icon(Icons.edit),
                   onTap: () async {
                     final picked = await showDatePicker(
@@ -1147,7 +1209,9 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
                   debtId: _debt.id!,
                   amount: amount,
                   paymentDate: selectedDate,
-                  note: noteController.text.isNotEmpty ? noteController.text : null,
+                  note: noteController.text.isNotEmpty
+                      ? noteController.text
+                      : null,
                   createdAt: DateTime.now(),
                 );
 
@@ -1173,7 +1237,9 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
   void _showEditDialog() {
     final nameController = TextEditingController(text: _debt.personName);
     final phoneController = TextEditingController(text: _debt.phoneNumber);
-    final descriptionController = TextEditingController(text: _debt.description);
+    final descriptionController = TextEditingController(
+      text: _debt.description,
+    );
     DateTime? selectedDueDate = _debt.dueDate;
 
     showDialog(
@@ -1239,7 +1305,9 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: context,
-                      initialDate: selectedDueDate ?? DateTime.now().add(const Duration(days: 30)),
+                      initialDate:
+                          selectedDueDate ??
+                          DateTime.now().add(const Duration(days: 30)),
                       firstDate: DateTime.now(),
                       lastDate: DateTime.now().add(const Duration(days: 3650)),
                     );
@@ -1265,9 +1333,12 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
 
                 final updatedDebt = _debt.copyWith(
                   personName: nameController.text,
-                  phoneNumber: phoneController.text.isNotEmpty ? phoneController.text : null,
-                  description:
-                      descriptionController.text.isNotEmpty ? descriptionController.text : null,
+                  phoneNumber: phoneController.text.isNotEmpty
+                      ? phoneController.text
+                      : null,
+                  description: descriptionController.text.isNotEmpty
+                      ? descriptionController.text
+                      : null,
                   dueDate: selectedDueDate,
                 );
 
@@ -1295,7 +1366,9 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Debt'),
-        content: const Text('Are you sure you want to delete this debt? This will also delete all payment history.'),
+        content: const Text(
+          'Are you sure you want to delete this debt? This will also delete all payment history.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1334,7 +1407,11 @@ class _DebtDetailsScreenState extends State<DebtDetailsScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await DatabaseHelper().deleteDebtPayment(payment.id!, payment.debtId, payment.amount);
+              await DatabaseHelper().deleteDebtPayment(
+                payment.id!,
+                payment.debtId,
+                payment.amount,
+              );
               Navigator.pop(context);
               _loadData();
               Get.snackbar(

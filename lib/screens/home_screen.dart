@@ -7,10 +7,13 @@ import '../controllers/expense_controller.dart';
 import '../controllers/personalization_controller.dart';
 import '../services/currency_service.dart';
 import '../services/database_helper.dart';
+import '../services/firebase_service.dart';
+import '../services/points_service.dart';
 import '../widgets/custom_search_bar.dart';
 import 'budget_screen.dart';
 import 'expense_detail_screen.dart';
 import 'cloud_sync_screen.dart';
+import 'auth_screen.dart';
 import 'notification_screen.dart';
 import 'debt_screen.dart';
 
@@ -54,6 +57,24 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadBudgetAlerts();
+    _checkDailyLogin();
+  }
+
+  Future<void> _checkDailyLogin() async {
+    final pointsService = PointsService();
+    final result = await pointsService.checkDailyLogin();
+
+    if (result['success'] && result['pointsEarned'] > 0) {
+      // Delay to avoid overlapping with other notifications
+      await Future.delayed(const Duration(milliseconds: 800));
+      Get.snackbar(
+        '✨ Daily Bonus!',
+        'You earned ${result['pointsEarned']} points for logging in today! Total: ${result['totalPoints']} points',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    }
   }
 
   @override
@@ -292,6 +313,55 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          // Points Badge (only show when user is signed in)
+          Obx(() {
+            final firebaseService = Get.find<FirebaseService>();
+            final user = firebaseService.currentUser.value;
+            if (user != null) {
+              return FutureBuilder<int>(
+                future: PointsService().getTotalPoints(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const SizedBox.shrink();
+                  }
+                  final points = snapshot.data!;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade600,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.stars,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$points',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            }
+            return const SizedBox.shrink();
+          }),
           // Budget Notification Icon
           IconButton(
             onPressed: () {
@@ -510,6 +580,48 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
+                  Obx(() {
+                    final firebaseService = Get.find<FirebaseService>();
+                    final user = firebaseService.currentUser.value;
+                    return ListTile(
+                      leading: Icon(
+                        user == null ? Icons.login : Icons.account_circle,
+                        color: user == null ? Colors.amber : Colors.blue,
+                      ),
+                      title: Text(
+                        user == null ? 'Sign In / Sign Up' : 'Account',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: user == null ? Colors.amber : Colors.blue,
+                        ),
+                      ),
+                      subtitle: Text(
+                        user == null
+                            ? 'Get 50 points on signup!'
+                            : user.email ?? 'View account',
+                      ),
+                      trailing: user == null
+                          ? const Icon(Icons.arrow_forward_ios, size: 16)
+                          : null,
+                      onTap: () async {
+                        if (user == null) {
+                          // Not signed in - go to Auth screen for sign in/up
+                          await Get.to(() => const AuthScreen());
+                        } else {
+                          // Signed in - go to Profile Settings
+                          await Get.toNamed('/profile');
+                        }
+                        // Keep drawer open after returning
+                        Future.delayed(const Duration(milliseconds: 100), () {
+                          if (_scaffoldKey.currentState?.isDrawerOpen ==
+                              false) {
+                            _scaffoldKey.currentState?.openDrawer();
+                          }
+                        });
+                      },
+                    );
+                  }),
+                  const Divider(),
                   ListTile(
                     leading: const Icon(Icons.calendar_month),
                     title: Text('summary'.tr),
@@ -567,34 +679,160 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                   const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.account_balance),
-                    title: const Text('Debt/Loan Tracker'),
-                    subtitle: const Text('Track money lent & borrowed'),
-                    onTap: () async {
-                      await Get.to(() => const DebtScreen());
-                      // Keep drawer open after returning
-                      Future.delayed(const Duration(milliseconds: 100), () {
-                        if (_scaffoldKey.currentState?.isDrawerOpen == false) {
-                          _scaffoldKey.currentState?.openDrawer();
-                        }
-                      });
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.cloud),
-                    title: const Text('Cloud Backup & Sync'),
-                    subtitle: const Text('Backup and sync your data'),
-                    onTap: () async {
-                      await Get.to(() => const CloudSyncScreen());
-                      // Keep drawer open after returning
-                      Future.delayed(const Duration(milliseconds: 100), () {
-                        if (_scaffoldKey.currentState?.isDrawerOpen == false) {
-                          _scaffoldKey.currentState?.openDrawer();
-                        }
-                      });
-                    },
-                  ),
+                  // Debt/Loan Tracker (Premium Feature)
+                  Obx(() {
+                    final firebaseService = Get.find<FirebaseService>();
+                    final user = firebaseService.currentUser.value;
+
+                    return FutureBuilder<bool>(
+                      future: user != null
+                          ? PointsService().isPremiumUnlocked()
+                          : Future.value(false),
+                      builder: (context, snapshot) {
+                        final isPremium = snapshot.data ?? false;
+                        final isEnabled = user != null && isPremium;
+
+                        return ListTile(
+                          leading: Icon(
+                            Icons.account_balance,
+                            color: isEnabled ? null : Colors.grey,
+                          ),
+                          title: Row(
+                            children: [
+                              Text(
+                                'Debt/Loan Tracker',
+                                style: TextStyle(
+                                  color: isEnabled ? null : Colors.grey,
+                                ),
+                              ),
+                              if (!isEnabled) const SizedBox(width: 8),
+                              if (!isEnabled)
+                                Icon(
+                                  Icons.lock,
+                                  size: 16,
+                                  color: Colors.amber.shade700,
+                                ),
+                            ],
+                          ),
+                          subtitle: Text(
+                            isEnabled
+                                ? 'Track money lent & borrowed'
+                                : user == null
+                                ? 'Sign in required'
+                                : 'Premium feature - 250 points',
+                            style: TextStyle(
+                              color: isEnabled ? null : Colors.grey,
+                            ),
+                          ),
+                          enabled: isEnabled,
+                          onTap: isEnabled
+                              ? () async {
+                                  await Get.to(() => const DebtScreen());
+                                  Future.delayed(
+                                    const Duration(milliseconds: 100),
+                                    () {
+                                      if (_scaffoldKey
+                                              .currentState
+                                              ?.isDrawerOpen ==
+                                          false) {
+                                        _scaffoldKey.currentState?.openDrawer();
+                                      }
+                                    },
+                                  );
+                                }
+                              : () {
+                                  Get.snackbar(
+                                    user == null
+                                        ? 'Sign In Required'
+                                        : 'Premium Feature',
+                                    user == null
+                                        ? 'Please sign in to access premium features'
+                                        : 'Collect 250 points to unlock this feature',
+                                    backgroundColor: Colors.orange,
+                                    colorText: Colors.white,
+                                  );
+                                },
+                        );
+                      },
+                    );
+                  }),
+                  // Cloud Backup & Sync (Premium Feature)
+                  Obx(() {
+                    final firebaseService = Get.find<FirebaseService>();
+                    final user = firebaseService.currentUser.value;
+
+                    return FutureBuilder<bool>(
+                      future: user != null
+                          ? PointsService().isPremiumUnlocked()
+                          : Future.value(false),
+                      builder: (context, snapshot) {
+                        final isPremium = snapshot.data ?? false;
+                        final isEnabled = user != null && isPremium;
+
+                        return ListTile(
+                          leading: Icon(
+                            Icons.cloud,
+                            color: isEnabled ? null : Colors.grey,
+                          ),
+                          title: Row(
+                            children: [
+                              Text(
+                                'Cloud Backup & Sync',
+                                style: TextStyle(
+                                  color: isEnabled ? null : Colors.grey,
+                                ),
+                              ),
+                              if (!isEnabled) const SizedBox(width: 8),
+                              if (!isEnabled)
+                                Icon(
+                                  Icons.lock,
+                                  size: 16,
+                                  color: Colors.amber.shade700,
+                                ),
+                            ],
+                          ),
+                          subtitle: Text(
+                            isEnabled
+                                ? 'Backup and sync your data'
+                                : user == null
+                                ? 'Sign in required'
+                                : 'Premium feature - 250 points',
+                            style: TextStyle(
+                              color: isEnabled ? null : Colors.grey,
+                            ),
+                          ),
+                          enabled: isEnabled,
+                          onTap: isEnabled
+                              ? () async {
+                                  await Get.to(() => const CloudSyncScreen());
+                                  Future.delayed(
+                                    const Duration(milliseconds: 100),
+                                    () {
+                                      if (_scaffoldKey
+                                              .currentState
+                                              ?.isDrawerOpen ==
+                                          false) {
+                                        _scaffoldKey.currentState?.openDrawer();
+                                      }
+                                    },
+                                  );
+                                }
+                              : () {
+                                  Get.snackbar(
+                                    user == null
+                                        ? 'Sign In Required'
+                                        : 'Premium Feature',
+                                    user == null
+                                        ? 'Please sign in to access premium features'
+                                        : 'Collect 250 points to unlock this feature',
+                                    backgroundColor: Colors.orange,
+                                    colorText: Colors.white,
+                                  );
+                                },
+                        );
+                      },
+                    );
+                  }),
                   ListTile(
                     leading: const Icon(Icons.settings),
                     title: Text('settings'.tr),
@@ -611,6 +849,69 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                   const Divider(),
+                  // Sign Out option (only show when user is signed in)
+                  Obx(() {
+                    final firebaseService = Get.find<FirebaseService>();
+                    final user = firebaseService.currentUser.value;
+                    if (user != null) {
+                      return ListTile(
+                        leading: const Icon(Icons.logout, color: Colors.red),
+                        title: const Text(
+                          'Sign Out',
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: const Text('Sign out from your account'),
+                        onTap: () async {
+                          // Show confirmation dialog
+                          final confirm = await Get.dialog<bool>(
+                            AlertDialog(
+                              title: const Text('Sign Out'),
+                              content: const Text(
+                                'Are you sure you want to sign out?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Get.back(result: false),
+                                  child: const Text('Cancel'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () => Get.back(result: true),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                  ),
+                                  child: const Text('Sign Out'),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            try {
+                              await firebaseService.signOut();
+                              Get.back(); // Close drawer
+                              Get.snackbar(
+                                'Success',
+                                'Signed out successfully',
+                                backgroundColor: Colors.green,
+                                colorText: Colors.white,
+                              );
+                            } catch (e) {
+                              Get.snackbar(
+                                'Error',
+                                'Failed to sign out: $e',
+                                backgroundColor: Colors.red,
+                                colorText: Colors.white,
+                              );
+                            }
+                          }
+                        },
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }),
                 ],
               ),
             ),
