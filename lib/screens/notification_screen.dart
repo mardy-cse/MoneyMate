@@ -50,24 +50,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
-  Future<void> _clearAllReadNotifications() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('read_notifications');
-      setState(() {
-        _readNotifications.clear();
-      });
-    } catch (e) {
-      debugPrint('Error clearing read notifications: $e');
-    }
-  }
-
-  int get _unreadCount {
-    return _notifications
-        .where((n) => !_readNotifications.contains(n.id))
-        .length;
-  }
-
   Future<void> _loadNotifications() async {
     setState(() => _isLoading = true);
 

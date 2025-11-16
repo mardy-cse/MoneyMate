@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/firebase_service.dart';
 import '../services/points_service.dart';
+import '../services/database_helper.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({Key? key}) : super(key: key);
@@ -59,19 +60,157 @@ class _AuthScreenState extends State<AuthScreen>
       return;
     }
 
+    // Check internet connection first
+    final hasInternet = await _firebaseService.hasInternetConnection();
+    if (!hasInternet) {
+      Get.snackbar(
+        'No Internet',
+        'Please connect to internet to sign in',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        icon: const Icon(Icons.wifi_off, color: Colors.white),
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
+
+    // Check if there's local data before signing in
+    final dbHelper = DatabaseHelper();
+    final hasData = await dbHelper.hasLocalData();
+
+    bool preserveData = false;
+
+    if (hasData) {
+      // Show dialog to ask user what to do with local data
+      final dataCount = await dbHelper.getLocalDataCount();
+      final totalItems = dataCount.values.reduce((a, b) => a + b);
+
+      final choice = await Get.dialog<String>(
+        AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Local Data Found'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'You have $totalItems items stored offline:',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              if (dataCount['expenses']! > 0)
+                Text('• ${dataCount['expenses']} expenses'),
+              if (dataCount['budgets']! > 0)
+                Text('• ${dataCount['budgets']} budgets'),
+              if (dataCount['goals']! > 0)
+                Text('• ${dataCount['goals']} goals'),
+              if (dataCount['debts']! > 0)
+                Text('• ${dataCount['debts']} debts'),
+              const SizedBox(height: 16),
+              const Text(
+                'What would you like to do?',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton.icon(
+              onPressed: () => Get.back(result: 'discard'),
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              label: const Text(
+                'Discard Local Data',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => Get.back(result: 'keep'),
+              icon: const Icon(Icons.cloud_upload),
+              label: const Text('Keep & Upload to Cloud'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        barrierDismissible: false,
+      );
+
+      if (choice == null) {
+        // User cancelled dialog
+        return;
+      }
+
+      preserveData = (choice == 'keep');
+    }
+
     final result = await _firebaseService.signIn(
       email: _signInEmailController.text.trim(),
       password: _signInPasswordController.text,
+      preserveLocalData: preserveData,
     );
 
     if (result['success']) {
-      Get.snackbar(
-        'Success',
-        result['message'],
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 1),
-      );
+      // Transfer guest points first (if any exist)
+      final pointsService = PointsService();
+      final transferResult = await pointsService.transferGuestPointsToAccount();
+
+      // If preserving data, upload to cloud
+      if (preserveData) {
+        Get.snackbar(
+          'Uploading...',
+          'Syncing your offline data to cloud',
+          backgroundColor: Colors.blue,
+          colorText: Colors.white,
+          showProgressIndicator: true,
+        );
+
+        try {
+          await _firebaseService.uploadToCloud();
+
+          Get.snackbar(
+            'Success',
+            'Signed in and data uploaded successfully',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+            duration: const Duration(seconds: 2),
+          );
+        } catch (e) {
+          Get.snackbar(
+            'Warning',
+            'Signed in but upload failed: ${e.toString()}',
+            backgroundColor: Colors.orange,
+            colorText: Colors.white,
+          );
+        }
+      } else {
+        Get.snackbar(
+          'Success',
+          result['message'],
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 1),
+        );
+      }
+
+      // Show guest points transfer notification (if any)
+      if (transferResult['transferred'] == true) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        final guestPoints = transferResult['guestPoints'] ?? 0;
+        final newTotal = transferResult['newTotal'] ?? 0;
+        Get.snackbar(
+          '✨ Points Transferred!',
+          'Your $guestPoints guest points added to account! Total: $newTotal points.',
+          backgroundColor: Colors.purple,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 3),
+        );
+      }
 
       // Replace auth screen with profile screen
       await Future.delayed(const Duration(milliseconds: 300));
@@ -121,6 +260,20 @@ class _AuthScreenState extends State<AuthScreen>
       return;
     }
 
+    // Check internet connection first
+    final hasInternet = await _firebaseService.hasInternetConnection();
+    if (!hasInternet) {
+      Get.snackbar(
+        'No Internet',
+        'Please connect to internet to sign up',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        icon: const Icon(Icons.wifi_off, color: Colors.white),
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
+
     final result = await _firebaseService.signUp(
       email: _signUpEmailController.text.trim(),
       password: _signUpPasswordController.text,
@@ -137,8 +290,12 @@ class _AuthScreenState extends State<AuthScreen>
       // Refresh the currentUser to ensure profile is populated
       await Future.delayed(const Duration(milliseconds: 500));
 
-      // Give signup bonus points
       final pointsService = PointsService();
+
+      // STEP 1: Transfer guest points first (if any)
+      final transferResult = await pointsService.transferGuestPointsToAccount();
+
+      // STEP 2: Give signup bonus points
       final bonusResult = await pointsService.giveSignupBonus();
 
       Get.snackbar(
@@ -149,12 +306,27 @@ class _AuthScreenState extends State<AuthScreen>
         duration: const Duration(seconds: 1),
       );
 
+      // Show guest points transfer notification (if any were transferred)
+      if (transferResult['transferred'] == true) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        final guestPoints = transferResult['guestPoints'] ?? 0;
+        Get.snackbar(
+          '✨ Points Transferred!',
+          'Your $guestPoints guest points have been added to your account!',
+          backgroundColor: Colors.purple,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 2),
+        );
+      }
+
       // Show signup bonus notification
       if (bonusResult['success']) {
         await Future.delayed(const Duration(milliseconds: 500));
+        final totalPoints =
+            transferResult['newTotal'] ?? bonusResult['pointsEarned'];
         Get.snackbar(
           '🎉 Signup Bonus!',
-          'You earned ${bonusResult['pointsEarned']} points! Collect 250 points to unlock Premium Features.',
+          'You earned ${bonusResult['pointsEarned']} points! Total: $totalPoints points.',
           backgroundColor: Colors.amber,
           colorText: Colors.white,
           duration: const Duration(seconds: 3),
@@ -199,6 +371,21 @@ class _AuthScreenState extends State<AuthScreen>
                   'Please enter your email',
                   backgroundColor: Colors.red,
                   colorText: Colors.white,
+                );
+                return;
+              }
+
+              // Check internet connection first
+              final hasInternet = await _firebaseService
+                  .hasInternetConnection();
+              if (!hasInternet) {
+                Get.snackbar(
+                  'No Internet',
+                  'Please connect to internet to reset password',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                  icon: const Icon(Icons.wifi_off, color: Colors.white),
+                  duration: const Duration(seconds: 3),
                 );
                 return;
               }

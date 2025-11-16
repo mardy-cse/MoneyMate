@@ -34,13 +34,13 @@ class DatabaseHelper {
   // Ensure debt tables exist (for existing installations)
   Future<void> _ensureTablesExist() async {
     if (_database == null) return;
-    
+
     try {
       // Check if debts table exists
       final result = await _database!.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='$_debtTable'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='$_debtTable'",
       );
-      
+
       if (result.isEmpty) {
         // Create debt tables if they don't exist
         await _database!.execute('''
@@ -70,7 +70,7 @@ class DatabaseHelper {
             FOREIGN KEY (debtId) REFERENCES $_debtTable (id) ON DELETE CASCADE
           )
         ''');
-        
+
         print('Debt tables created successfully');
       }
     } catch (e) {
@@ -317,6 +317,86 @@ class DatabaseHelper {
     await db.delete(_tableName);
   }
 
+  // Clear all data (expenses, budgets, goals, debts, debt payments)
+  // Called when user logs out to prevent data mixing between accounts
+  Future<void> clearAllData() async {
+    final db = await database;
+    await db.delete(_tableName); // Clear expenses
+    await db.delete(_budgetTable); // Clear budgets
+    await db.delete(_goalsTable); // Clear saving goals
+    await db.delete(
+      _debtPaymentTable,
+    ); // Clear debt payments first (foreign key)
+    await db.delete(_debtTable); // Clear debts
+    print('All local data cleared');
+  }
+
+  // Check if there's any local data (for offline usage detection)
+  Future<bool> hasLocalData() async {
+    final db = await database;
+
+    // Check expenses
+    final expenseCount =
+        Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM $_tableName'),
+        ) ??
+        0;
+
+    // Check budgets
+    final budgetCount =
+        Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM $_budgetTable'),
+        ) ??
+        0;
+
+    // Check goals
+    final goalsCount =
+        Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM $_goalsTable'),
+        ) ??
+        0;
+
+    // Check debts
+    final debtsCount =
+        Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM $_debtTable'),
+        ) ??
+        0;
+
+    return expenseCount > 0 ||
+        budgetCount > 0 ||
+        goalsCount > 0 ||
+        debtsCount > 0;
+  }
+
+  // Get count of local data items
+  Future<Map<String, int>> getLocalDataCount() async {
+    final db = await database;
+
+    return {
+      'expenses':
+          Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM $_tableName'),
+          ) ??
+          0,
+      'budgets':
+          Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM $_budgetTable'),
+          ) ??
+          0,
+      'goals':
+          Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM $_goalsTable'),
+          ) ??
+          0,
+      'debts':
+          Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM $_debtTable'),
+          ) ??
+          0,
+    };
+  }
+
   // Close the database
   Future<void> close() async {
     final db = await database;
@@ -404,7 +484,7 @@ class DatabaseHelper {
       if (user == null) return;
 
       final db = await database;
-      
+
       // Get all goals from Firebase
       final goalsSnapshot = await FirebaseFirestore.instance
           .collection('users')
@@ -415,7 +495,7 @@ class DatabaseHelper {
       for (var doc in goalsSnapshot.docs) {
         final goalData = doc.data();
         final goal = SavingGoal.fromMap(goalData);
-        
+
         // Insert or update in local database
         await db.insert(
           _goalsTable,
@@ -423,7 +503,7 @@ class DatabaseHelper {
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
       }
-      
+
       print('Goals synced from Firebase successfully');
     } catch (e) {
       print('Error syncing goals from Firebase: $e');
@@ -509,7 +589,7 @@ class DatabaseHelper {
   }
 
   // ==================== DEBT/LOAN OPERATIONS ====================
-  
+
   // Sync debts from Firebase to local database
   Future<void> syncDebtsFromFirebase() async {
     try {
@@ -517,7 +597,7 @@ class DatabaseHelper {
       if (user == null) return;
 
       final db = await database;
-      
+
       // Get all debts from Firebase
       final debtsSnapshot = await FirebaseFirestore.instance
           .collection('users')
@@ -528,7 +608,7 @@ class DatabaseHelper {
       for (var doc in debtsSnapshot.docs) {
         final debtData = doc.data();
         final debt = Debt.fromMap(debtData);
-        
+
         // Insert or update in local database
         await db.insert(
           _debtTable,
@@ -548,7 +628,7 @@ class DatabaseHelper {
         for (var paymentDoc in paymentsSnapshot.docs) {
           final paymentData = paymentDoc.data();
           final payment = DebtPayment.fromMap(paymentData);
-          
+
           await db.insert(
             _debtPaymentTable,
             payment.toMap(),
@@ -556,13 +636,13 @@ class DatabaseHelper {
           );
         }
       }
-      
+
       print('Debts synced from Firebase successfully');
     } catch (e) {
       print('Error syncing debts from Firebase: $e');
     }
   }
-  
+
   // Insert a new debt
   Future<int> insertDebt(Debt debt) async {
     final db = await database;
@@ -571,10 +651,10 @@ class DatabaseHelper {
       debt.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    
+
     // Sync to Firebase
     await _syncDebtToFirebase(debt.copyWith(id: id));
-    
+
     return id;
   }
 
@@ -644,26 +724,30 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [debt.id],
     );
-    
+
     // Sync to Firebase
     await _syncDebtToFirebase(debt);
-    
+
     return result;
   }
 
   // Delete a debt
   Future<int> deleteDebt(int id) async {
     final db = await database;
-    
+
     // Delete all payments for this debt first
     await db.delete(_debtPaymentTable, where: 'debtId = ?', whereArgs: [id]);
-    
+
     // Delete the debt
-    final result = await db.delete(_debtTable, where: 'id = ?', whereArgs: [id]);
-    
+    final result = await db.delete(
+      _debtTable,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
     // Delete from Firebase
     await _deleteDebtFromFirebase(id);
-    
+
     return result;
   }
 
@@ -684,19 +768,18 @@ class DatabaseHelper {
     if (debt != null) {
       final newPaidAmount = debt.paidAmount + payment.amount;
       String newStatus = 'pending';
-      
+
       if (newPaidAmount >= debt.amount) {
         newStatus = 'completed';
       } else if (newPaidAmount > 0) {
         newStatus = 'partial';
       }
 
-      await updateDebt(debt.copyWith(
-        paidAmount: newPaidAmount,
-        status: newStatus,
-      ));
+      await updateDebt(
+        debt.copyWith(paidAmount: newPaidAmount, status: newStatus),
+      );
     }
-    
+
     return id;
   }
 
@@ -718,31 +801,34 @@ class DatabaseHelper {
   // Delete a debt payment
   Future<int> deleteDebtPayment(int id, int debtId, double amount) async {
     final db = await database;
-    
+
     // Delete the payment
-    final result = await db.delete(_debtPaymentTable, where: 'id = ?', whereArgs: [id]);
-    
+    final result = await db.delete(
+      _debtPaymentTable,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
     // Delete from Firebase
     await _deleteDebtPaymentFromFirebase(id, debtId);
-    
+
     // Update debt's paidAmount and status
     final debt = await getDebt(debtId);
     if (debt != null) {
       final newPaidAmount = (debt.paidAmount - amount).clamp(0.0, debt.amount);
       String newStatus = 'pending';
-      
+
       if (newPaidAmount >= debt.amount) {
         newStatus = 'completed';
       } else if (newPaidAmount > 0) {
         newStatus = 'partial';
       }
 
-      await updateDebt(debt.copyWith(
-        paidAmount: newPaidAmount,
-        status: newStatus,
-      ));
+      await updateDebt(
+        debt.copyWith(paidAmount: newPaidAmount, status: newStatus),
+      );
     }
-    
+
     return result;
   }
 
@@ -754,7 +840,7 @@ class DatabaseHelper {
       FROM $_debtTable
       WHERE type = 'lent' AND status != 'completed'
     ''');
-    
+
     return (result.first['total'] as double?) ?? 0.0;
   }
 
@@ -766,7 +852,7 @@ class DatabaseHelper {
       FROM $_debtTable
       WHERE type = 'borrowed' AND status != 'completed'
     ''');
-    
+
     return (result.first['total'] as double?) ?? 0.0;
   }
 
@@ -800,11 +886,11 @@ class DatabaseHelper {
             .doc(id.toString())
             .collection('payments')
             .get();
-        
+
         for (var doc in paymentsSnapshot.docs) {
           await doc.reference.delete();
         }
-        
+
         // Delete the debt
         await FirebaseFirestore.instance
             .collection('users')

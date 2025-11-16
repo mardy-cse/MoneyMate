@@ -23,11 +23,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
+  // Key to force rebuild of points section
+  UniqueKey _pointsKey = UniqueKey();
+
   @override
   void initState() {
     super.initState();
     _nameController.text = personalizationController.userName.value;
     _emailController.text = personalizationController.userEmail.value;
+    _refreshPoints();
+  }
+
+  void _refreshPoints() {
+    setState(() {
+      _pointsKey = UniqueKey();
+    });
   }
 
   @override
@@ -757,240 +767,230 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 20),
 
-              // Points Section (only show when user is signed in)
-              Obx(() {
-                final firebaseService = Get.find<FirebaseService>();
-                final user = firebaseService.currentUser.value;
-                if (user != null) {
-                  return FutureBuilder<Map<String, dynamic>>(
-                    future:
-                        Future.wait([
-                          PointsService().getTotalPoints(),
-                          PointsService().isPremiumUnlocked(),
-                          PointsService().getRemainingPremiumDays(),
-                        ]).then(
-                          (results) => {
-                            'points': results[0],
-                            'isPremium': results[1],
-                            'remainingDays': results[2],
-                          },
-                        ),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const SizedBox.shrink();
-                      }
-                      final points = snapshot.data!['points'] as int;
-                      final isPremium = snapshot.data!['isPremium'] as bool;
-                      final remainingDays =
-                          snapshot.data!['remainingDays'] as int;
-                      final progress = (points / 250).clamp(0.0, 1.0);
+              // Points Section (show always - guest users can earn points offline)
+              FutureBuilder<Map<String, dynamic>>(
+                key: _pointsKey, // Force rebuild when key changes
+                future:
+                    Future.wait([
+                      PointsService().getTotalPoints(),
+                      PointsService().isPremiumUnlocked(),
+                      PointsService().getRemainingPremiumDays(),
+                    ]).then(
+                      (results) => {
+                        'points': results[0],
+                        'isPremium': results[1],
+                        'remainingDays': results[2],
+                      },
+                    ),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const SizedBox.shrink();
+                  }
 
-                      return Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: isPremium
-                                ? [
-                                    Colors.amber.shade400,
-                                    Colors.orange.shade600,
-                                  ]
-                                : [
-                                    Colors.blue.shade400,
-                                    Colors.purple.shade600,
-                                  ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: (isPremium ? Colors.amber : Colors.blue)
-                                  .withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
+                  final points = snapshot.data!['points'] as int;
+
+                  // Don't show if user has 0 points
+                  if (points == 0) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final isPremium = snapshot.data!['isPremium'] as bool;
+                  final remainingDays = snapshot.data!['remainingDays'] as int;
+                  final progress = (points / 250).clamp(0.0, 1.0);
+
+                  return Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isPremium
+                            ? [Colors.amber.shade400, Colors.orange.shade600]
+                            : [Colors.blue.shade400, Colors.purple.shade600],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isPremium ? Colors.amber : Colors.blue)
+                              .withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
                         ),
-                        child: Column(
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
+                                Icon(
+                                  isPremium
+                                      ? Icons.workspace_premium
+                                      : Icons.stars,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Icon(
+                                    Text(
                                       isPremium
-                                          ? Icons.workspace_premium
-                                          : Icons.stars,
-                                      color: Colors.white,
-                                      size: 32,
+                                          ? 'Premium Member'
+                                          : 'My Points',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                    const SizedBox(width: 12),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          isPremium
-                                              ? 'Premium Member'
-                                              : 'My Points',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        Text(
-                                          isPremium
-                                              ? '$remainingDays days remaining'
-                                              : 'Collect points for premium',
-                                          style: TextStyle(
-                                            color: Colors.white.withOpacity(
-                                              0.9,
-                                            ),
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
+                                    Text(
+                                      isPremium
+                                          ? '$remainingDays days remaining'
+                                          : 'Collect points for premium',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ],
-                                ),
-                                Text(
-                                  '$points',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                  ),
                                 ),
                               ],
                             ),
-                            if (!isPremium) const SizedBox(height: 16),
-                            if (!isPremium)
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            Text(
+                              '$points',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (!isPremium) const SizedBox(height: 16),
+                        if (!isPremium)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Progress to Premium',
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.9),
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      Text(
-                                        '$points / 250',
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.9),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: LinearProgressIndicator(
-                                      value: progress,
-                                      minHeight: 8,
-                                      backgroundColor: Colors.white.withOpacity(
-                                        0.3,
-                                      ),
-                                      valueColor:
-                                          const AlwaysStoppedAnimation<Color>(
-                                            Colors.white,
-                                          ),
+                                  Text(
+                                    'Progress to Premium',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.9),
+                                      fontSize: 12,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
                                   Text(
-                                    points >= 250
-                                        ? '🎉 Ready to unlock premium!'
-                                        : 'Need ${250 - points} more points',
+                                    '$points / 250',
                                     style: TextStyle(
-                                      color: Colors.white.withOpacity(0.95),
+                                      color: Colors.white.withOpacity(0.9),
                                       fontSize: 12,
-                                      fontWeight: FontWeight.w500,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ],
                               ),
-                            if (!isPremium && points >= 250)
-                              const SizedBox(height: 16),
-                            if (!isPremium && points >= 250)
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: () async {
-                                    final confirm = await Get.dialog<bool>(
-                                      AlertDialog(
-                                        title: const Text('Unlock Premium'),
-                                        content: const Text(
-                                          'Redeem 250 points to unlock Premium Features for 30 days?\n\nFeatures:\n• Debt/Loan Tracker\n• Cloud Backup & Sync\n\n⚠️ Your points will be reset to 0 after redemption.',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Get.back(result: false),
-                                            child: const Text('Cancel'),
-                                          ),
-                                          ElevatedButton(
-                                            onPressed: () =>
-                                                Get.back(result: true),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.amber,
-                                            ),
-                                            child: const Text('Redeem'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-
-                                    if (confirm == true) {
-                                      final result = await PointsService()
-                                          .redeemPremium();
-                                      if (result['success']) {
-                                        Get.snackbar(
-                                          '🎉 Premium Unlocked!',
-                                          result['message'],
-                                          backgroundColor: Colors.green,
-                                          colorText: Colors.white,
-                                          duration: const Duration(seconds: 3),
-                                        );
-                                        setState(() {}); // Refresh
-                                      } else {
-                                        Get.snackbar(
-                                          'Error',
-                                          result['message'],
-                                          backgroundColor: Colors.red,
-                                          colorText: Colors.white,
-                                        );
-                                      }
-                                    }
-                                  },
-                                  icon: const Icon(Icons.workspace_premium),
-                                  label: const Text('Unlock Premium Now'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: Colors.purple.shade700,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
+                              const SizedBox(height: 8),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: LinearProgressIndicator(
+                                  value: progress,
+                                  minHeight: 8,
+                                  backgroundColor: Colors.white.withOpacity(
+                                    0.3,
                                   ),
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
                                 ),
                               ),
-                          ],
-                        ),
-                      );
-                    },
+                              const SizedBox(height: 8),
+                              Text(
+                                points >= 250
+                                    ? '🎉 Ready to unlock premium!'
+                                    : 'Need ${250 - points} more points',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.95),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (!isPremium && points >= 250)
+                          const SizedBox(height: 16),
+                        if (!isPremium && points >= 250)
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final confirm = await Get.dialog<bool>(
+                                  AlertDialog(
+                                    title: const Text('Unlock Premium'),
+                                    content: const Text(
+                                      'Redeem 250 points to unlock Premium Features for 30 days?\n\nFeatures:\n• Debt/Loan Tracker\n• Cloud Backup & Sync\n\n⚠️ Your points will be reset to 0 after redemption.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Get.back(result: false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () => Get.back(result: true),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.amber,
+                                        ),
+                                        child: const Text('Redeem'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirm == true) {
+                                  final result = await PointsService()
+                                      .redeemPremium();
+                                  if (result['success']) {
+                                    Get.snackbar(
+                                      '🎉 Premium Unlocked!',
+                                      result['message'],
+                                      backgroundColor: Colors.green,
+                                      colorText: Colors.white,
+                                      duration: const Duration(seconds: 3),
+                                    );
+                                    _refreshPoints(); // Refresh points display
+                                  } else {
+                                    Get.snackbar(
+                                      'Error',
+                                      result['message'],
+                                      backgroundColor: Colors.red,
+                                      colorText: Colors.white,
+                                    );
+                                  }
+                                }
+                              },
+                              icon: const Icon(Icons.workspace_premium),
+                              label: const Text('Unlock Premium Now'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.purple.shade700,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   );
-                }
-                return const SizedBox.shrink();
-              }),
+                },
+              ),
             ],
           ),
         ),

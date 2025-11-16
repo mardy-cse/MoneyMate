@@ -189,28 +189,28 @@ void exampleUsagePatterns() {
   controller.deleteExpense(1);
 
   // 5. Get today's expenses
-  final todayExpenses = controller.getTodayExpenses();
+  controller.getTodayExpenses();
 
   // 6. Get weekly expenses
-  final weeklyExpenses = controller.getWeeklyExpenses();
+  controller.getWeeklyExpenses();
 
   // 7. Get monthly expenses
-  final monthlyExpenses = controller.getMonthlyExpenses();
+  controller.getMonthlyExpenses();
 
   // 8. Get expenses by category
-  final foodExpenses = controller.getExpensesByCategory('Food');
+  controller.getExpensesByCategory('Food');
 
   // 9. Get expenses by date range
-  final rangeExpenses = controller.getExpensesByDateRange(
+  controller.getExpensesByDateRange(
     DateTime(2025, 11, 1),
     DateTime(2025, 11, 10),
   );
 
   // 10. Get category totals
-  final categoryTotals = controller.getCategoryTotals();
+  controller.getCategoryTotals();
 
   // 11. Get total expenses
-  final totalExpenses = controller.getTotalExpenses();
+  controller.getTotalExpenses();
 
   // 12. Access reactive values
   print('Today Total: ${controller.totalToday.value}');

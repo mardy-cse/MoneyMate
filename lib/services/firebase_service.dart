@@ -247,9 +247,11 @@ class FirebaseService extends GetxService {
   }
 
   // Sign in with email and password
+  // preserveLocalData parameter allows keeping offline data
   Future<Map<String, dynamic>> signIn({
     required String email,
     required String password,
+    bool preserveLocalData = false,
   }) async {
     try {
       isLoading.value = true;
@@ -257,6 +259,22 @@ class FirebaseService extends GetxService {
       // Check internet
       if (!await hasInternetConnection()) {
         return {'success': false, 'message': 'No internet connection'};
+      }
+
+      // Only clear local data if NOT preserving (switching accounts scenario)
+      if (!preserveLocalData) {
+        await _dbHelper.clearAllData();
+
+        // Clear expense controller
+        try {
+          final expenseController = Get.find<ExpenseController>();
+          expenseController.expenses.clear();
+          expenseController.totalToday.value = 0.0;
+          expenseController.totalWeekly.value = 0.0;
+          expenseController.totalMonthly.value = 0.0;
+        } catch (e) {
+          print('Error clearing ExpenseController: $e');
+        }
       }
 
       final userCredential = await _auth.signInWithEmailAndPassword(
@@ -313,7 +331,33 @@ class FirebaseService extends GetxService {
 
   // Sign out
   Future<void> signOut() async {
-    await _auth.signOut();
+    try {
+      // Stop real-time sync
+      stopRealtimeSync();
+
+      // Clear all local data to prevent data mixing between accounts
+      await _dbHelper.clearAllData();
+
+      // Clear expense controller
+      try {
+        final expenseController = Get.find<ExpenseController>();
+        expenseController.expenses.clear();
+        expenseController.totalToday.value = 0.0;
+        expenseController.totalWeekly.value = 0.0;
+        expenseController.totalMonthly.value = 0.0;
+      } catch (e) {
+        print('Error clearing ExpenseController: $e');
+      }
+
+      // Sign out from Firebase
+      await _auth.signOut();
+
+      print('User signed out and local data cleared');
+    } catch (e) {
+      print('Error during sign out: $e');
+      // Still try to sign out even if data clearing fails
+      await _auth.signOut();
+    }
   }
 
   // Reset password
