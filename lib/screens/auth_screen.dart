@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../services/firebase_service.dart';
 import '../services/points_service.dart';
 import '../services/database_helper.dart';
+import '../controllers/points_controller.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({Key? key}) : super(key: key);
@@ -297,6 +298,14 @@ class _AuthScreenState extends State<AuthScreen>
 
       // STEP 2: Give signup bonus points
       final bonusResult = await pointsService.giveSignupBonus();
+      
+      // Refresh points controller
+      try {
+        final pointsController = Get.find<PointsController>();
+        await pointsController.refreshPoints();
+      } catch (e) {
+        print('Error refreshing points: $e');
+      }
 
       Get.snackbar(
         'Success',

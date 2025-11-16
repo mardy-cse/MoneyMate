@@ -6,7 +6,9 @@ import '../models/expense.dart';
 import '../controllers/personalization_controller.dart';
 import '../controllers/expense_controller.dart';
 import 'database_helper.dart';
+import 'points_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseService extends GetxService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -329,14 +331,39 @@ class FirebaseService extends GetxService {
     }
   }
 
-  // Sign out
-  Future<void> signOut() async {
+  // Sign out (requires internet connection)
+  Future<Map<String, dynamic>> signOut() async {
+    // Check internet connection first
+    if (!await hasInternetConnection()) {
+      return {
+        'success': false,
+        'message': 'Internet connection required to sign out',
+      };
+    }
+
     try {
+      // Sync pending points first
+      try {
+        final pointsService = PointsService();
+        await pointsService.syncPendingPoints();
+        print('✅ Pending points synced before sign out');
+      } catch (e) {
+        print('Error syncing pending points: $e');
+      }
+
       // Stop real-time sync
       stopRealtimeSync();
 
       // Clear all local data to prevent data mixing between accounts
       await _dbHelper.clearAllData();
+      
+      // Clear points from SharedPreferences
+      try {
+        final pointsService = PointsService();
+        await pointsService.clearLocalPoints();
+      } catch (e) {
+        print('Error clearing points: $e');
+      }
 
       // Clear expense controller
       try {
@@ -353,10 +380,26 @@ class FirebaseService extends GetxService {
       await _auth.signOut();
 
       print('User signed out and local data cleared');
+      return {
+        'success': true,
+        'message': 'Signed out successfully',
+      };
     } catch (e) {
       print('Error during sign out: $e');
-      // Still try to sign out even if data clearing fails
-      await _auth.signOut();
+      return {
+        'success': false,
+        'message': 'Sign out failed: ${e.toString()}',
+      };
+    }
+  }
+
+  // Check if there are pending points to sync
+  Future<bool> hasPendingPointsToSync() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool('pending_sync') ?? false;
+    } catch (e) {
+      return false;
     }
   }
 

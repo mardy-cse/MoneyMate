@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../controllers/personalization_controller.dart';
+import '../controllers/premium_controller.dart';
+import '../controllers/points_controller.dart';
 import '../services/currency_service.dart';
 import '../services/firebase_service.dart';
 import '../services/points_service.dart';
@@ -957,6 +959,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   final result = await PointsService()
                                       .redeemPremium();
                                   if (result['success']) {
+                                    // Refresh premium status globally
+                                    try {
+                                      final premiumController = Get.find<PremiumController>();
+                                      await premiumController.refreshPremiumStatus();
+                                      
+                                      // Refresh points display
+                                      final pointsController = Get.find<PointsController>();
+                                      await pointsController.refreshPoints();
+                                    } catch (e) {
+                                      print('Error refreshing status: $e');
+                                    }
+                                    
                                     Get.snackbar(
                                       '🎉 Premium Unlocked!',
                                       result['message'],

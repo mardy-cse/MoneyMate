@@ -62,15 +62,11 @@ class PointsService {
   Future<void> addPoints(int points) async {
     final currentPoints = await getTotalPoints();
     final newTotal = currentPoints + points;
-
-    // Always save to SharedPreferences first (offline-first)
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_totalPointsKey, newTotal);
-
     final userDoc = _getUserDoc();
 
     if (userDoc != null) {
-      // User is signed in - try to save to Firebase
+      // User is signed in - save to Firebase only (don't save to SharedPreferences)
       final hasInternet = await hasInternetConnection();
 
       if (hasInternet) {
@@ -82,19 +78,22 @@ class PointsService {
             },
           }, SetOptions(merge: true));
 
-          // Successfully synced - clear pending flag
-          await prefs.setBool(_pendingSyncKey, false);
-          print('✅ Points synced to Firebase: $newTotal');
+          print('✅ Points saved to Firebase: $newTotal');
         } catch (e) {
           print('❌ Error saving points to Firebase: $e');
-          // Mark as pending sync
+          // Fallback: save to SharedPreferences for pending sync
+          await prefs.setInt(_totalPointsKey, newTotal);
           await prefs.setBool(_pendingSyncKey, true);
         }
       } else {
-        // No internet - mark as pending sync
+        // No internet - save to SharedPreferences for pending sync
+        await prefs.setInt(_totalPointsKey, newTotal);
         await prefs.setBool(_pendingSyncKey, true);
         print('📡 Offline: Points will sync when online');
       }
+    } else {
+      // Guest user - save to SharedPreferences only
+      await prefs.setInt(_totalPointsKey, newTotal);
     }
   }
 
@@ -232,6 +231,17 @@ class PointsService {
     }
   }
 
+  // Clear local points (called on sign out)
+  Future<void> clearLocalPoints() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_totalPointsKey);
+    await prefs.remove(_lastLoginDateKey);
+    await prefs.remove(_pendingSyncKey);
+    await prefs.remove(_premiumUnlockedKey);
+    await prefs.remove(_premiumExpiryDateKey);
+    print('✅ Local points cleared');
+  }
+
   // Give signup bonus (one-time)
   Future<Map<String, dynamic>> giveSignupBonus() async {
     final userDoc = _getUserDoc();
@@ -289,36 +299,48 @@ class PointsService {
     };
   }
 
-  // Check and give daily login bonus (works offline)
+  // Check and give daily login bonus (requires sign up, works offline)
   Future<Map<String, dynamic>> checkDailyLogin() async {
+    // Check if user is signed in
+    final userDoc = _getUserDoc();
+    if (userDoc == null) {
+      // Guest user - no daily login bonus
+      return {
+        'success': false,
+        'isNewDay': false,
+        'pointsEarned': 0,
+        'totalPoints': 0,
+        'message': 'Sign up required for daily login bonus',
+      };
+    }
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-
-    // Always check SharedPreferences first (offline-first)
     final prefs = await SharedPreferences.getInstance();
-    String? lastLoginStr = prefs.getString(_lastLoginDateKey);
+    String? lastLoginStr;
 
-    // Also try to get from Firebase if online and signed in
-    final userDoc = _getUserDoc();
-    if (userDoc != null) {
-      final hasInternet = await hasInternetConnection();
-      if (hasInternet) {
-        try {
-          final doc = await userDoc.get();
-          if (doc.exists) {
-            final data = doc.data() as Map<String, dynamic>?;
-            final timestamp = data?['points']?['lastLoginDate'] as Timestamp?;
-            if (timestamp != null) {
-              lastLoginStr = timestamp.toDate().toIso8601String();
-              // Update local cache
-              await prefs.setString(_lastLoginDateKey, lastLoginStr);
-            }
+    // Get last login date from Firebase or local cache
+    final hasInternet = await hasInternetConnection();
+    if (hasInternet) {
+      try {
+        final doc = await userDoc.get();
+        if (doc.exists) {
+          final data = doc.data() as Map<String, dynamic>?;
+          final timestamp = data?['points']?['lastLoginDate'] as Timestamp?;
+          if (timestamp != null) {
+            lastLoginStr = timestamp.toDate().toIso8601String();
+            // Update local cache
+            await prefs.setString(_lastLoginDateKey, lastLoginStr);
           }
-        } catch (e) {
-          print('⚠️ Error checking last login from Firebase: $e');
-          // Continue with local data
         }
+      } catch (e) {
+        print('⚠️ Error checking last login from Firebase: $e');
+        // Fallback to local cache
+        lastLoginStr = prefs.getString(_lastLoginDateKey);
       }
+    } else {
+      // Offline - use local cache (signed-in users can still get daily bonus)
+      lastLoginStr = prefs.getString(_lastLoginDateKey);
     }
 
     // Check if already logged in today
@@ -342,28 +364,24 @@ class PointsService {
       }
     }
 
-    // New day - give points (works offline)
+    // New day - give points (only for signed in users)
     await addPoints(dailyLoginPoints);
 
-    // Save last login date locally (always)
+    // Save last login date locally
     await prefs.setString(_lastLoginDateKey, today.toIso8601String());
 
-    // Try to save to Firebase if online
-    if (userDoc != null) {
-      final hasInternet = await hasInternetConnection();
-      if (hasInternet) {
-        try {
-          await userDoc.set({
-            'points': {'lastLoginDate': Timestamp.fromDate(today)},
-          }, SetOptions(merge: true));
-          print('✅ Last login date synced to Firebase');
-        } catch (e) {
-          print('⚠️ Error saving last login date to Firebase: $e');
-          // Not critical - local data is saved
-        }
-      } else {
-        print('📡 Offline: Last login date will sync when online');
+    // Save to Firebase if online
+    if (hasInternet) {
+      try {
+        await userDoc.set({
+          'points': {'lastLoginDate': Timestamp.fromDate(today)},
+        }, SetOptions(merge: true));
+        print('✅ Last login date synced to Firebase');
+      } catch (e) {
+        print('⚠️ Error saving last login date to Firebase: $e');
       }
+    } else {
+      print('📡 Offline: Last login date will sync when online');
     }
 
     final totalPoints = await getTotalPoints();
@@ -519,9 +537,8 @@ class PointsService {
       }
     }
 
-    // Also save to SharedPreferences
+    // Save premium expiry date to SharedPreferences for offline access
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_totalPointsKey, 0);
     await prefs.setString(_premiumExpiryDateKey, expiryDate.toIso8601String());
 
     return {

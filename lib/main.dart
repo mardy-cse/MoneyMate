@@ -22,6 +22,8 @@ import 'services/firebase_service.dart';
 import 'controllers/expense_controller.dart';
 import 'controllers/personalization_controller.dart';
 import 'controllers/security_controller.dart';
+import 'controllers/premium_controller.dart';
+import 'controllers/points_controller.dart';
 
 void main() async {
   // Ensure Flutter bindings are initialized
@@ -43,6 +45,8 @@ void main() async {
   Get.put(LanguageService());
   Get.put(PersonalizationController());
   Get.put(SecurityController());
+  Get.put(PremiumController()); // Premium status controller
+  Get.put(PointsController()); // Points controller
 
   // Initialize Firebase service only if Firebase is initialized
   try {

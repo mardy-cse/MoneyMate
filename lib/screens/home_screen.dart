@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../controllers/expense_controller.dart';
 import '../controllers/personalization_controller.dart';
+import '../controllers/premium_controller.dart';
+import '../controllers/points_controller.dart';
 import '../services/currency_service.dart';
 import '../services/database_helper.dart';
 import '../services/firebase_service.dart';
@@ -52,12 +54,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Budget alerts
   List<BudgetAlert> _budgetAlerts = [];
   Set<String> _readNotifications = {};
-
-  // Premium status cache
-  final RxBool _isPremiumUser = false.obs;
-
-  // Points refresh notifier
-  final ValueNotifier<int> _pointsRefreshNotifier = ValueNotifier<int>(0);
+  
+  // Controllers
+  final premiumController = Get.find<PremiumController>();
+  final pointsController = Get.find<PointsController>();
 
   @override
   void initState() {
@@ -74,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       // App resumed, refresh points
-      _refreshPoints();
+      pointsController.refreshPoints();
     }
   }
 
@@ -84,13 +84,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ever(firebaseService.currentUser, (_) {
       _loadPremiumStatus();
       _syncPendingPoints(); // Sync when auth state changes
-      _refreshPoints(); // Refresh points display
+      pointsController.refreshPoints(); // Refresh points display
     });
-  }
-
-  void _refreshPoints() {
-    // Trigger rebuild of points badge
-    _pointsRefreshNotifier.value++;
   }
 
   Future<void> _syncPendingPoints() async {
@@ -104,13 +99,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _loadPremiumStatus() async {
-    final firebaseService = Get.find<FirebaseService>();
-    if (firebaseService.currentUser.value != null) {
-      final isPremium = await PointsService().isPremiumUnlocked();
-      _isPremiumUser.value = isPremium;
-    } else {
-      _isPremiumUser.value = false;
-    }
+    await premiumController.refreshPremiumStatus();
   }
 
   Future<void> _checkDailyLogin() async {
@@ -127,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         colorText: Colors.white,
         duration: const Duration(seconds: 2),
       );
-      _refreshPoints(); // Refresh points display after daily bonus
+      pointsController.refreshPoints(); // Refresh points display after daily bonus
     }
   }
 
@@ -135,7 +124,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
-    _pointsRefreshNotifier.dispose();
     super.dispose();
   }
 
@@ -370,90 +358,79 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           // Points Badge (show always - works offline and for guests)
-          ValueListenableBuilder<int>(
-            valueListenable: _pointsRefreshNotifier,
-            builder: (context, _, __) {
-              return FutureBuilder<int>(
-                future: PointsService().getTotalPoints(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const SizedBox.shrink();
-                  }
-                  final points = snapshot.data!;
+          Obx(() {
+            final points = pointsController.totalPoints.value;
 
-                  // Only show if user has points (earned through usage)
-                  if (points == 0) {
-                    return const SizedBox.shrink();
-                  }
+            // Only show if user has points (earned through usage)
+            if (points == 0) {
+              return const SizedBox.shrink();
+            }
 
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: InkWell(
-                      onTap: () {
-                        // Navigate to profile (or show login prompt if not signed in)
-                        final firebaseService = Get.find<FirebaseService>();
-                        final user = firebaseService.currentUser.value;
-                        if (user != null) {
-                          Get.toNamed('/profile');
-                        } else {
-                          Get.snackbar(
-                            'Sign In Required',
-                            'Sign in to redeem your $points points for premium features',
-                            backgroundColor: Colors.orange,
-                            colorText: Colors.white,
-                            duration: const Duration(seconds: 3),
-                            mainButton: TextButton(
-                              onPressed: () {
-                                Get.back(); // Close snackbar
-                                Get.toNamed('/auth');
-                              },
-                              child: const Text(
-                                'Sign In',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.shade600,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.stars,
-                              size: 18,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '$points',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: InkWell(
+                onTap: () {
+                  // Navigate to profile (or show login prompt if not signed in)
+                  final firebaseService = Get.find<FirebaseService>();
+                  final user = firebaseService.currentUser.value;
+                  if (user != null) {
+                    Get.toNamed('/profile');
+                  } else {
+                    Get.snackbar(
+                      'Sign In Required',
+                      'Sign in to redeem your $points points for premium features',
+                      backgroundColor: Colors.orange,
+                      colorText: Colors.white,
+                      duration: const Duration(seconds: 3),
+                      mainButton: TextButton(
+                        onPressed: () {
+                          Get.back(); // Close snackbar
+                          Get.toNamed('/auth');
+                        },
+                        child: const Text(
+                          'Sign In',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                  );
+                    );
+                  }
                 },
-              );
-            },
-          ),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade600,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.stars,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$points',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
           // Budget Notification Icon
           IconButton(
             onPressed: () {
@@ -775,7 +752,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   Obx(() {
                     final firebaseService = Get.find<FirebaseService>();
                     final user = firebaseService.currentUser.value;
-                    final isPremium = _isPremiumUser.value;
+                    final isPremium = premiumController.isPremium.value;
                     final isEnabled = user != null && isPremium;
 
                     return ListTile(
@@ -840,7 +817,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   Obx(() {
                     final firebaseService = Get.find<FirebaseService>();
                     final user = firebaseService.currentUser.value;
-                    final isPremium = _isPremiumUser.value;
+                    final isPremium = premiumController.isPremium.value;
                     final isEnabled = user != null && isPremium;
 
                     return ListTile(
