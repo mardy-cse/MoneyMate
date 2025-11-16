@@ -275,6 +275,80 @@ class _AuthScreenState extends State<AuthScreen>
       return;
     }
 
+    // Show loading dialog
+    Get.dialog(
+      WillPopScope(
+        onWillPop: () async => false,
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 40),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.blue.shade400,
+                  Colors.purple.shade600,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blue.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 60,
+                      height: 60,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 4,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.white,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.person_add,
+                      size: 28,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Creating your account...',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Please wait a moment',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      barrierDismissible: false,
+    );
+
     final result = await _firebaseService.signUp(
       email: _signUpEmailController.text.trim(),
       password: _signUpPasswordController.text,
@@ -288,8 +362,80 @@ class _AuthScreenState extends State<AuthScreen>
       _signUpPasswordController.clear();
       _signUpConfirmPasswordController.clear();
 
-      // Refresh the currentUser to ensure profile is populated
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Update loading message
+      Get.back(); // Close loading dialog
+      Get.dialog(
+        WillPopScope(
+          onWillPop: () async => false,
+          child: Center(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 40),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.amber.shade400,
+                    Colors.orange.shade600,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.amber.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 4,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.stars,
+                        size: 28,
+                        color: Colors.white,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Setting up your profile...',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Preparing rewards & bonuses',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        barrierDismissible: false,
+      );
 
       final pointsService = PointsService();
 
@@ -306,6 +452,9 @@ class _AuthScreenState extends State<AuthScreen>
       } catch (e) {
         print('Error refreshing points: $e');
       }
+
+      // Close loading dialog
+      Get.back();
 
       Get.snackbar(
         'Success',
@@ -343,9 +492,11 @@ class _AuthScreenState extends State<AuthScreen>
       }
 
       // Replace auth screen with profile screen
-      await Future.delayed(const Duration(milliseconds: 300));
       Get.offNamed('/profile');
     } else {
+      // Close loading dialog
+      Get.back();
+      
       Get.snackbar(
         'Error',
         result['message'] ?? 'Sign up failed',
