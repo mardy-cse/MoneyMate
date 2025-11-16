@@ -518,12 +518,15 @@ class PointsService {
     final now = DateTime.now();
     final expiryDate = now.add(Duration(days: premiumDurationDays));
 
-    // Reset points to 0 and set expiry date
+    // Calculate remaining points after redeeming premium
+    final remainingPoints = currentPoints - premiumUnlockCost;
+
+    // Deduct premium cost and set expiry date
     if (userDoc != null) {
       try {
         await userDoc.set({
           'points': {
-            'total': 0,
+            'total': remainingPoints,
             'premiumExpiryDate': Timestamp.fromDate(expiryDate),
             'lastRedeemedAt': FieldValue.serverTimestamp(),
           },
@@ -537,14 +540,15 @@ class PointsService {
       }
     }
 
-    // Save premium expiry date to SharedPreferences for offline access
+    // Save premium expiry date and remaining points to SharedPreferences for offline access
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_premiumExpiryDateKey, expiryDate.toIso8601String());
+    await prefs.setInt(_totalPointsKey, remainingPoints);
 
     return {
       'success': true,
-      'message': 'Premium unlocked for 30 days! Your points have been reset.',
-      'remainingPoints': 0,
+      'message': 'Premium unlocked for 30 days!',
+      'remainingPoints': remainingPoints,
       'expiryDate': expiryDate,
     };
   }
