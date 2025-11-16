@@ -876,29 +876,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Progress bar
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: LinearProgressIndicator(
-                                  value: remainingDays / 30,
-                                  backgroundColor: Colors.white.withOpacity(0.3),
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  minHeight: 8,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    '${(remainingDays / 30 * 100).toInt()}% remaining',
+                                    'Surprise Progress',
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.9),
                                       fontSize: 12,
                                     ),
                                   ),
                                   Text(
-                                    '$remainingDays / 30 days',
+                                    '$points / 500',
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.9),
                                       fontSize: 12,
@@ -906,6 +895,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ),
                                   ),
                                 ],
+                              ),
+                              const SizedBox(height: 8),
+                              // Progress bar
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: LinearProgressIndicator(
+                                  value: (points / 500).clamp(0.0, 1.0),
+                                  backgroundColor: Colors.white.withOpacity(0.3),
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  minHeight: 8,
+                                ),
                               ),
                               const SizedBox(height: 12),
                               Container(
@@ -924,7 +924,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
-                                        'Waiting for upcoming surprise',
+                                        points >= 500 
+                                            ? '🎉 Surprise unlocked! Check back soon!'
+                                            : 'Collect ${500 - points} more points for surprise',
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 13,

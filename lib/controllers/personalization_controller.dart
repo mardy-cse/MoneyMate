@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class PersonalizationController extends GetxController {
   // Observable variables
   final isDarkMode = false.obs;
   final selectedColorIndex = 1.obs; // Default to Blue (index 1)
+  final selectedFontIndex = 0.obs; // Default to System Default
   final userName = ''.obs;
   final userEmail = ''.obs;
   final profileImagePath = ''.obs;
@@ -14,32 +16,56 @@ class PersonalizationController extends GetxController {
   // SharedPreferences keys
   static const String _darkModeKey = 'dark_mode';
   static const String _colorIndexKey = 'color_index';
+  static const String _fontIndexKey = 'font_index';
   static const String _userNameKey = 'user_name';
   static const String _userEmailKey = 'user_email';
   static const String _profileImageKey = 'profile_image';
   static const String _languageKey = 'app_language';
 
-  // Predefined color palette
+  // Predefined color palette - Modern soft pastel colors
   final List<Color> colorPalette = [
-    const Color(0xFF2196F3), // Blue (default)
-    const Color(0xFF4CAF50), // Green
-    const Color(0xFFFF9800), // Orange
-    const Color(0xFF9C27B0), // Purple
-    const Color(0xFFE91E63), // Pink
-    const Color(0xFF00BCD4), // Cyan
-    const Color(0xFFFF5722), // Deep Orange
-    const Color(0xFF607D8B), // Blue Grey
+    const Color(0xFF4ECDC4), // Turquoise (Palette 17 - #4ECDC4)
+    const Color(0xFFD4E845), // Light Lime (Palette 17 - #D4E845)
+    const Color(0xFFFFC12F), // Soft Yellow (Palette 17 - #FFC12F)
+    const Color(0xFFFF8B78), // Coral (Palette 17 - #FF8B78)
+    const Color(0xFFCCADB9), // Soft Pink (Palette 17 - #CCADB9)
+    const Color(0xFF00B4D8), // Bright Blue (Palette 15 - #00B4D8)
+    const Color(0xFF0096A8), // Teal Blue (Palette 15 - #0096A8)
+    const Color(0xFF90E0EF), // Sky Blue (Palette 15 - #90E0EF)
   ];
 
   final List<String> colorNames = [
-    'Blue',
-    'Green',
-    'Orange',
-    'Purple',
+    'Turquoise',
+    'Lime',
+    'Yellow',
+    'Coral',
     'Pink',
-    'Cyan',
-    'Deep Orange',
-    'Blue Grey',
+    'Bright Blue',
+    'Teal',
+    'Sky Blue',
+  ];
+
+  // Font families
+  final List<String> fontFamilies = [
+    'System Default',
+    'Roboto',
+    'Poppins',
+    'Lato',
+    'Montserrat',
+    'Open Sans',
+    'Raleway',
+    'Ubuntu',
+  ];
+
+  final List<String> fontFamilyValues = [
+    '', // System default (empty string)
+    'Roboto',
+    'Poppins',
+    'Lato',
+    'Montserrat',
+    'OpenSans',
+    'Raleway',
+    'Ubuntu',
   ];
 
   @override
@@ -58,6 +84,9 @@ class PersonalizationController extends GetxController {
 
       // Load color preference
       selectedColorIndex.value = prefs.getInt(_colorIndexKey) ?? 0;
+
+      // Load font preference
+      selectedFontIndex.value = prefs.getInt(_fontIndexKey) ?? 0;
 
       // Load user profile
       userName.value = prefs.getString(_userNameKey) ?? '';
@@ -130,6 +159,20 @@ class PersonalizationController extends GetxController {
     }
   }
 
+  // Change font family
+  Future<void> changeFont(int index) async {
+    try {
+      if (index >= 0 && index < fontFamilies.length) {
+        selectedFontIndex.value = index;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt(_fontIndexKey, index);
+        updateTheme();
+      }
+    } catch (e) {
+      debugPrint('Error changing font: $e');
+    }
+  }
+
   // Update theme in GetX
   void updateTheme() {
     Get.changeTheme(getThemeData());
@@ -138,6 +181,36 @@ class PersonalizationController extends GetxController {
   // Get current theme data
   ThemeData getThemeData() {
     final primaryColor = colorPalette[selectedColorIndex.value];
+    final fontIndex = selectedFontIndex.value;
+    
+    // Get text theme based on selected font
+    TextTheme? textTheme;
+    if (fontIndex > 0) {
+      final fontFamily = fontFamilyValues[fontIndex];
+      switch (fontFamily) {
+        case 'Roboto':
+          textTheme = GoogleFonts.robotoTextTheme();
+          break;
+        case 'Poppins':
+          textTheme = GoogleFonts.poppinsTextTheme();
+          break;
+        case 'Lato':
+          textTheme = GoogleFonts.latoTextTheme();
+          break;
+        case 'Montserrat':
+          textTheme = GoogleFonts.montserratTextTheme();
+          break;
+        case 'OpenSans':
+          textTheme = GoogleFonts.openSansTextTheme();
+          break;
+        case 'Raleway':
+          textTheme = GoogleFonts.ralewayTextTheme();
+          break;
+        case 'Ubuntu':
+          textTheme = GoogleFonts.ubuntuTextTheme();
+          break;
+      }
+    }
 
     if (isDarkMode.value) {
       return ThemeData(
@@ -147,6 +220,7 @@ class PersonalizationController extends GetxController {
           surface: const Color(0xFF121212), // Darker background
           surfaceContainerHighest: const Color(0xFF1E1E1E), // Card background
         ),
+        textTheme: textTheme,
         useMaterial3: true,
         cardTheme: CardThemeData(
           elevation: 2,
@@ -203,6 +277,7 @@ class PersonalizationController extends GetxController {
           seedColor: primaryColor,
           brightness: Brightness.light,
         ),
+        textTheme: textTheme,
         useMaterial3: true,
         cardTheme: CardThemeData(
           elevation: 2,

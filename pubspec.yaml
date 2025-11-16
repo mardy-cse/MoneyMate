@@ -48,6 +48,7 @@ dependencies:
   flutter_sound: ^9.2.13
   audioplayers: ^6.1.0
   image_picker: ^1.0.7
+  google_fonts: ^6.2.1
   local_auth: ^2.1.7
   flutter_screen_lock: ^9.0.1
   pattern_lock: ^2.0.0

@@ -292,6 +292,167 @@ class ThemeCustomizationScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
+            // Font Family Section
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.font_download,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Font Family',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Select your preferred font style for the entire app',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Font Dropdown
+                    Obx(() {
+                      final selectedIndex = personalizationController.selectedFontIndex.value;
+                      final selectedFontValue = personalizationController.fontFamilyValues[selectedIndex];
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.primary,
+                                width: 2,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: DropdownButton<int>(
+                              value: selectedIndex,
+                              isExpanded: true,
+                              underline: const SizedBox(),
+                              icon: Icon(
+                                Icons.arrow_drop_down,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontFamily: selectedFontValue.isEmpty ? null : selectedFontValue,
+                              ),
+                              items: List.generate(
+                                personalizationController.fontFamilies.length,
+                                (index) {
+                                  final fontName = personalizationController.fontFamilies[index];
+                                  final fontValue = personalizationController.fontFamilyValues[index];
+                                  
+                                  return DropdownMenuItem<int>(
+                                    value: index,
+                                    child: Text(
+                                      fontName,
+                                      style: TextStyle(
+                                        fontFamily: fontValue.isEmpty ? null : fontValue,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              onChanged: (int? newValue) {
+                                if (newValue != null) {
+                                  personalizationController.changeFont(newValue);
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          // Font Preview
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Preview',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'The quick brown fox jumps over the lazy dog',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontFamily: selectedFontValue.isEmpty ? null : selectedFontValue,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    fontFamily: selectedFontValue.isEmpty ? null : selectedFontValue,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'abcdefghijklmnopqrstuvwxyz',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    fontFamily: selectedFontValue.isEmpty ? null : selectedFontValue,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '0123456789',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    fontFamily: selectedFontValue.isEmpty ? null : selectedFontValue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
             // Language Selection Section
             Card(
               elevation: 2,
