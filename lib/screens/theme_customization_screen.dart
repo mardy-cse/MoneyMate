@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../controllers/personalization_controller.dart';
 
 class ThemeCustomizationScreen extends StatelessWidget {
@@ -332,6 +333,32 @@ class ThemeCustomizationScreen extends StatelessWidget {
                       final selectedIndex = personalizationController.selectedFontIndex.value;
                       final selectedFontValue = personalizationController.fontFamilyValues[selectedIndex];
 
+                      // Get TextStyle based on font
+                      TextStyle? getFontStyle(String fontValue, {double? fontSize, FontWeight? fontWeight, Color? color}) {
+                        if (fontValue.isEmpty) {
+                          return TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                        }
+                        
+                        switch (fontValue) {
+                          case 'Roboto':
+                            return GoogleFonts.roboto(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                          case 'Poppins':
+                            return GoogleFonts.poppins(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                          case 'Lato':
+                            return GoogleFonts.lato(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                          case 'Montserrat':
+                            return GoogleFonts.montserrat(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                          case 'OpenSans':
+                            return GoogleFonts.openSans(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                          case 'NotoSans':
+                            return GoogleFonts.notoSans(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                          case 'Ubuntu':
+                            return GoogleFonts.ubuntu(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                          default:
+                            return TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                        }
+                      }
+
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -352,11 +379,11 @@ class ThemeCustomizationScreen extends StatelessWidget {
                                 Icons.arrow_drop_down,
                                 color: Theme.of(context).colorScheme.primary,
                               ),
-                              style: TextStyle(
+                              style: getFontStyle(
+                                selectedFontValue,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Theme.of(context).colorScheme.onSurface,
-                                fontFamily: selectedFontValue.isEmpty ? null : selectedFontValue,
                               ),
                               items: List.generate(
                                 personalizationController.fontFamilies.length,
@@ -368,9 +395,7 @@ class ThemeCustomizationScreen extends StatelessWidget {
                                     value: index,
                                     child: Text(
                                       fontName,
-                                      style: TextStyle(
-                                        fontFamily: fontValue.isEmpty ? null : fontValue,
-                                      ),
+                                      style: getFontStyle(fontValue),
                                     ),
                                   );
                                 },
@@ -408,36 +433,33 @@ class ThemeCustomizationScreen extends StatelessWidget {
                                 const SizedBox(height: 12),
                                 Text(
                                   'The quick brown fox jumps over the lazy dog',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontFamily: selectedFontValue.isEmpty ? null : selectedFontValue,
-                                  ),
+                                  style: getFontStyle(selectedFontValue, fontSize: 16),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-                                  style: TextStyle(
+                                  style: getFontStyle(
+                                    selectedFontValue,
                                     fontSize: 14,
                                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    fontFamily: selectedFontValue.isEmpty ? null : selectedFontValue,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   'abcdefghijklmnopqrstuvwxyz',
-                                  style: TextStyle(
+                                  style: getFontStyle(
+                                    selectedFontValue,
                                     fontSize: 14,
                                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    fontFamily: selectedFontValue.isEmpty ? null : selectedFontValue,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '0123456789',
-                                  style: TextStyle(
+                                  style: getFontStyle(
+                                    selectedFontValue,
                                     fontSize: 14,
                                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    fontFamily: selectedFontValue.isEmpty ? null : selectedFontValue,
                                   ),
                                 ),
                               ],

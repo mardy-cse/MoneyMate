@@ -53,7 +53,7 @@ class PersonalizationController extends GetxController {
     'Lato',
     'Montserrat',
     'Open Sans',
-    'Raleway',
+    'Noto Sans', // Better multilingual support including Bangla
     'Ubuntu',
   ];
 
@@ -64,7 +64,7 @@ class PersonalizationController extends GetxController {
     'Lato',
     'Montserrat',
     'OpenSans',
-    'Raleway',
+    'NotoSans',
     'Ubuntu',
   ];
 
@@ -101,6 +101,14 @@ class PersonalizationController extends GetxController {
     } catch (e) {
       debugPrint('Error loading preferences: $e');
     }
+  }
+
+  // Get current locale based on selected language
+  Locale get currentLocale {
+    if (selectedLanguage.value == 'bn') {
+      return const Locale('bn', 'BD');
+    }
+    return const Locale('en', 'US');
   }
 
   // Change language
@@ -167,6 +175,20 @@ class PersonalizationController extends GetxController {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setInt(_fontIndexKey, index);
         updateTheme();
+        
+        // Show restart dialog
+        Get.dialog(
+          AlertDialog(
+            title: const Text('Font Changed'),
+            content: const Text('Please restart the app to apply the new font throughout the entire app.'),
+            actions: [
+              TextButton(
+                onPressed: () => Get.back(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
       }
     } catch (e) {
       debugPrint('Error changing font: $e');
@@ -176,6 +198,8 @@ class PersonalizationController extends GetxController {
   // Update theme in GetX
   void updateTheme() {
     Get.changeTheme(getThemeData());
+    // Force rebuild all widgets
+    Get.forceAppUpdate();
   }
 
   // Get current theme data
@@ -184,35 +208,44 @@ class PersonalizationController extends GetxController {
     final fontIndex = selectedFontIndex.value;
     
     // Get text theme based on selected font
-    TextTheme? textTheme;
+    TextTheme? baseTextTheme;
     if (fontIndex > 0) {
       final fontFamily = fontFamilyValues[fontIndex];
       switch (fontFamily) {
         case 'Roboto':
-          textTheme = GoogleFonts.robotoTextTheme();
+          baseTextTheme = GoogleFonts.robotoTextTheme();
           break;
         case 'Poppins':
-          textTheme = GoogleFonts.poppinsTextTheme();
+          baseTextTheme = GoogleFonts.poppinsTextTheme();
           break;
         case 'Lato':
-          textTheme = GoogleFonts.latoTextTheme();
+          baseTextTheme = GoogleFonts.latoTextTheme();
           break;
         case 'Montserrat':
-          textTheme = GoogleFonts.montserratTextTheme();
+          baseTextTheme = GoogleFonts.montserratTextTheme();
           break;
         case 'OpenSans':
-          textTheme = GoogleFonts.openSansTextTheme();
+          baseTextTheme = GoogleFonts.openSansTextTheme();
           break;
-        case 'Raleway':
-          textTheme = GoogleFonts.ralewayTextTheme();
+        case 'NotoSans':
+          baseTextTheme = GoogleFonts.notoSansTextTheme();
           break;
         case 'Ubuntu':
-          textTheme = GoogleFonts.ubuntuTextTheme();
+          baseTextTheme = GoogleFonts.ubuntuTextTheme();
           break;
       }
     }
 
     if (isDarkMode.value) {
+      // Apply text theme for dark mode
+      final baseTheme = ThemeData.dark();
+      final darkTextTheme = baseTextTheme != null 
+          ? GoogleFonts.getTextTheme(
+              fontFamilyValues[fontIndex],
+              baseTheme.textTheme,
+            )
+          : baseTheme.textTheme;
+
       return ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: primaryColor,
@@ -220,7 +253,8 @@ class PersonalizationController extends GetxController {
           surface: const Color(0xFF121212), // Darker background
           surfaceContainerHighest: const Color(0xFF1E1E1E), // Card background
         ),
-        textTheme: textTheme,
+        textTheme: darkTextTheme,
+        primaryTextTheme: darkTextTheme,
         useMaterial3: true,
         cardTheme: CardThemeData(
           elevation: 2,
@@ -272,12 +306,22 @@ class PersonalizationController extends GetxController {
         ),
       );
     } else {
+      // Apply text theme for light mode
+      final baseTheme = ThemeData.light();
+      final lightTextTheme = baseTextTheme != null 
+          ? GoogleFonts.getTextTheme(
+              fontFamilyValues[fontIndex],
+              baseTheme.textTheme,
+            )
+          : baseTheme.textTheme;
+
       return ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: primaryColor,
           brightness: Brightness.light,
         ),
-        textTheme: textTheme,
+        textTheme: lightTextTheme,
+        primaryTextTheme: lightTextTheme,
         useMaterial3: true,
         cardTheme: CardThemeData(
           elevation: 2,

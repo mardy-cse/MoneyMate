@@ -654,9 +654,11 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                   size: 24,
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Spending Trend',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -673,9 +675,10 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
                         return BarTooltipItem(
                           _formatCurrency(rod.toY),
-                          const TextStyle(
+                          TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
+                            fontFamily: Theme.of(context).textTheme.bodyMedium?.fontFamily,
                           ),
                         );
                       },
@@ -1020,9 +1023,11 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
               children: [
                 Icon(Icons.today, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   "Today's Breakdown",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -1110,9 +1115,11 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   "Weekly Breakdown",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -1215,15 +1222,14 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.analytics, color: Colors.white, size: 28),
-              SizedBox(width: 12),
+              const Icon(Icons.analytics, color: Colors.white, size: 28),
+              const SizedBox(width: 12),
               Text(
                 'Overall Summary',
-                style: TextStyle(
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Colors.white,
-                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1266,9 +1272,8 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                 ),
                 Text(
                   '${balance >= 0 ? '+' : ''}${_formatCurrency(balance)}',
-                  style: const TextStyle(
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.white,
-                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1288,14 +1293,15 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
           const SizedBox(height: 8),
           Text(
             label,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white70,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             _formatCurrency(value),
-            style: const TextStyle(
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Colors.white,
-              fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
