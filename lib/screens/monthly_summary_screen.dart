@@ -656,9 +656,9 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                 const SizedBox(width: 8),
                 Text(
                   'Spending Trend',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -678,7 +678,9 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                           TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontFamily: Theme.of(context).textTheme.bodyMedium?.fontFamily,
+                            fontFamily: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.fontFamily,
                           ),
                         );
                       },
@@ -1025,9 +1027,9 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                 const SizedBox(width: 8),
                 Text(
                   "Today's Breakdown",
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -1117,9 +1119,9 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                 const SizedBox(width: 8),
                 Text(
                   "Weekly Breakdown",
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -1293,9 +1295,9 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
           const SizedBox(height: 8),
           Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.white70,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.white70),
           ),
           const SizedBox(height: 4),
           Text(

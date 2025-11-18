@@ -10,6 +10,7 @@ import 'dart:io';
 import '../models/expense.dart';
 import '../controllers/expense_controller.dart';
 import '../services/currency_service.dart';
+import '../services/ai_categorization_service.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -42,6 +43,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   String? _imagePath;
 
+  // AI Categorization
+  final AiCategorizationService _aiService = AiCategorizationService();
+  List<CategorySuggestion> _aiSuggestions = [];
+  bool _showAiSuggestions = false;
+  String? _originalCategory; // Track original category before AI suggestion
+
   final List<String> _categories = [
     'food',
     'transport',
@@ -68,6 +75,68 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     super.initState();
     _selectedCategory = _categories[0];
     _initRecorder();
+
+    // Listen to title changes for AI suggestions
+    _titleController.addListener(_onTitleChanged);
+  }
+
+  void _onTitleChanged() {
+    final title = _titleController.text.trim();
+
+    if (title.length >= 3) {
+      // Get AI suggestions
+      final suggestions = _aiService.getSuggestions(title);
+
+      setState(() {
+        _aiSuggestions = suggestions;
+        _showAiSuggestions =
+            suggestions.isNotEmpty && suggestions.first.confidence >= 0.5;
+      });
+    } else {
+      setState(() {
+        _aiSuggestions = [];
+        _showAiSuggestions = false;
+      });
+    }
+  }
+
+  void _applySuggestion(String category) {
+    // Store original category before applying suggestion
+    _originalCategory = _selectedCategory;
+
+    setState(() {
+      // Convert AI category to lowercase to match our categories
+      final categoryLower = category.toLowerCase();
+
+      if (_isIncome) {
+        // For income, use default mapping
+        if (_incomeCategories.contains(categoryLower)) {
+          _selectedCategory = categoryLower;
+        } else {
+          _selectedCategory = 'other_income';
+        }
+      } else {
+        // For expenses, use AI category
+        if (_categories.contains(categoryLower)) {
+          _selectedCategory = categoryLower;
+        } else {
+          _selectedCategory = 'other';
+        }
+      }
+
+      _showAiSuggestions = false;
+    });
+
+    // Show confirmation
+    Get.snackbar(
+      'AI Suggestion Applied',
+      'Category set to "${category.tr}"',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+      icon: const Icon(Icons.smart_toy, color: Colors.white),
+    );
   }
 
   Future<void> _initRecorder() async {
@@ -327,6 +396,18 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       try {
         final controller = Get.find<ExpenseController>();
 
+        // Learn from user's category choice (if different from AI suggestion)
+        if (_aiSuggestions.isNotEmpty && _originalCategory != null) {
+          final aiSuggested = _aiSuggestions.first.category.toLowerCase();
+          if (_selectedCategory != aiSuggested) {
+            // User corrected the AI suggestion, learn from it
+            _aiService.learnFromCorrection(
+              _titleController.text.trim(),
+              _selectedCategory,
+            );
+          }
+        }
+
         // Parse amount and make it negative if it's income
         double amount = double.parse(_amountController.text.trim());
         if (_isIncome) {
@@ -503,6 +584,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   labelText: 'title'.tr,
                   hintText: 'enter_expense_title'.tr,
                   prefixIcon: const Icon(Icons.title),
+                  suffixIcon: _showAiSuggestions
+                      ? const Icon(Icons.smart_toy, color: Colors.blue)
+                      : null,
                   border: const OutlineInputBorder(),
                 ),
                 textCapitalization: TextCapitalization.sentences,
@@ -513,6 +597,103 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   return null;
                 },
               ),
+
+              // AI Suggestions
+              if (_showAiSuggestions && _aiSuggestions.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.smart_toy,
+                            size: 18,
+                            color: Colors.blue,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'AI Suggestion',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _aiSuggestions.take(3).map((suggestion) {
+                          return InkWell(
+                            onTap: () => _applySuggestion(suggestion.category),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.blue.shade300),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    suggestion.category.tr,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.blue.shade700,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade100,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      '${suggestion.confidencePercentage}%',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.blue.shade700,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Tap to apply category',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.blue.shade600,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 16),
 
               // Amount Field

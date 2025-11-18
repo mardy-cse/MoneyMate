@@ -330,32 +330,75 @@ class ThemeCustomizationScreen extends StatelessWidget {
 
                     // Font Dropdown
                     Obx(() {
-                      final selectedIndex = personalizationController.selectedFontIndex.value;
-                      final selectedFontValue = personalizationController.fontFamilyValues[selectedIndex];
+                      final selectedIndex =
+                          personalizationController.selectedFontIndex.value;
+                      final selectedFontValue = personalizationController
+                          .fontFamilyValues[selectedIndex];
 
                       // Get TextStyle based on font
-                      TextStyle? getFontStyle(String fontValue, {double? fontSize, FontWeight? fontWeight, Color? color}) {
+                      TextStyle? getFontStyle(
+                        String fontValue, {
+                        double? fontSize,
+                        FontWeight? fontWeight,
+                        Color? color,
+                      }) {
                         if (fontValue.isEmpty) {
-                          return TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                          return TextStyle(
+                            fontSize: fontSize,
+                            fontWeight: fontWeight,
+                            color: color,
+                          );
                         }
-                        
+
                         switch (fontValue) {
                           case 'Roboto':
-                            return GoogleFonts.roboto(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                            return GoogleFonts.roboto(
+                              fontSize: fontSize,
+                              fontWeight: fontWeight,
+                              color: color,
+                            );
                           case 'Poppins':
-                            return GoogleFonts.poppins(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                            return GoogleFonts.poppins(
+                              fontSize: fontSize,
+                              fontWeight: fontWeight,
+                              color: color,
+                            );
                           case 'Lato':
-                            return GoogleFonts.lato(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                            return GoogleFonts.lato(
+                              fontSize: fontSize,
+                              fontWeight: fontWeight,
+                              color: color,
+                            );
                           case 'Montserrat':
-                            return GoogleFonts.montserrat(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                            return GoogleFonts.montserrat(
+                              fontSize: fontSize,
+                              fontWeight: fontWeight,
+                              color: color,
+                            );
                           case 'OpenSans':
-                            return GoogleFonts.openSans(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                            return GoogleFonts.openSans(
+                              fontSize: fontSize,
+                              fontWeight: fontWeight,
+                              color: color,
+                            );
                           case 'NotoSans':
-                            return GoogleFonts.notoSans(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                            return GoogleFonts.notoSans(
+                              fontSize: fontSize,
+                              fontWeight: fontWeight,
+                              color: color,
+                            );
                           case 'Ubuntu':
-                            return GoogleFonts.ubuntu(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                            return GoogleFonts.ubuntu(
+                              fontSize: fontSize,
+                              fontWeight: fontWeight,
+                              color: color,
+                            );
                           default:
-                            return TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color);
+                            return TextStyle(
+                              fontSize: fontSize,
+                              fontWeight: fontWeight,
+                              color: color,
+                            );
                         }
                       }
 
@@ -363,7 +406,10 @@ class ThemeCustomizationScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               border: Border.all(
                                 color: Theme.of(context).colorScheme.primary,
@@ -388,9 +434,11 @@ class ThemeCustomizationScreen extends StatelessWidget {
                               items: List.generate(
                                 personalizationController.fontFamilies.length,
                                 (index) {
-                                  final fontName = personalizationController.fontFamilies[index];
-                                  final fontValue = personalizationController.fontFamilyValues[index];
-                                  
+                                  final fontName = personalizationController
+                                      .fontFamilies[index];
+                                  final fontValue = personalizationController
+                                      .fontFamilyValues[index];
+
                                   return DropdownMenuItem<int>(
                                     value: index,
                                     child: Text(
@@ -402,7 +450,9 @@ class ThemeCustomizationScreen extends StatelessWidget {
                               ),
                               onChanged: (int? newValue) {
                                 if (newValue != null) {
-                                  personalizationController.changeFont(newValue);
+                                  personalizationController.changeFont(
+                                    newValue,
+                                  );
                                 }
                               },
                             ),
@@ -413,10 +463,14 @@ class ThemeCustomizationScreen extends StatelessWidget {
                             width: double.infinity,
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withOpacity(0.05),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withOpacity(0.2),
                               ),
                             ),
                             child: Column(
@@ -427,13 +481,18 @@ class ThemeCustomizationScreen extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                   ),
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
                                   'The quick brown fox jumps over the lazy dog',
-                                  style: getFontStyle(selectedFontValue, fontSize: 16),
+                                  style: getFontStyle(
+                                    selectedFontValue,
+                                    fontSize: 16,
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
@@ -441,7 +500,9 @@ class ThemeCustomizationScreen extends StatelessWidget {
                                   style: getFontStyle(
                                     selectedFontValue,
                                     fontSize: 14,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -450,7 +511,9 @@ class ThemeCustomizationScreen extends StatelessWidget {
                                   style: getFontStyle(
                                     selectedFontValue,
                                     fontSize: 14,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -459,7 +522,9 @@ class ThemeCustomizationScreen extends StatelessWidget {
                                   style: getFontStyle(
                                     selectedFontValue,
                                     fontSize: 14,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],

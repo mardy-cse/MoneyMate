@@ -10,7 +10,7 @@ class PremiumController extends GetxController {
   void onInit() {
     super.onInit();
     loadPremiumStatus();
-    
+
     // Listen to auth state changes
     FirebaseAuth.instance.authStateChanges().listen((_) {
       loadPremiumStatus();

@@ -877,7 +877,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     'Surprise Progress',
@@ -902,14 +903,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 borderRadius: BorderRadius.circular(10),
                                 child: LinearProgressIndicator(
                                   value: (points / 500).clamp(0.0, 1.0),
-                                  backgroundColor: Colors.white.withOpacity(0.3),
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  backgroundColor: Colors.white.withOpacity(
+                                    0.3,
+                                  ),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                   minHeight: 8,
                                 ),
                               ),
                               const SizedBox(height: 12),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(8),
@@ -924,7 +932,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
-                                        points >= 500 
+                                        points >= 500
                                             ? '🎉 Surprise unlocked! Check back soon!'
                                             : 'Collect ${500 - points} more points for surprise',
                                         style: TextStyle(
@@ -1029,16 +1037,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   if (result['success']) {
                                     // Refresh premium status globally
                                     try {
-                                      final premiumController = Get.find<PremiumController>();
-                                      await premiumController.refreshPremiumStatus();
-                                      
+                                      final premiumController =
+                                          Get.find<PremiumController>();
+                                      await premiumController
+                                          .refreshPremiumStatus();
+
                                       // Refresh points display
-                                      final pointsController = Get.find<PointsController>();
+                                      final pointsController =
+                                          Get.find<PointsController>();
                                       await pointsController.refreshPoints();
                                     } catch (e) {
                                       print('Error refreshing status: $e');
                                     }
-                                    
+
                                     Get.snackbar(
                                       '🎉 Premium Unlocked!',
                                       result['message'],

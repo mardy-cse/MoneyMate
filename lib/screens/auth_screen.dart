@@ -285,10 +285,7 @@ class _AuthScreenState extends State<AuthScreen>
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Colors.blue.shade400,
-                  Colors.purple.shade600,
-                ],
+                colors: [Colors.blue.shade400, Colors.purple.shade600],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -312,16 +309,10 @@ class _AuthScreenState extends State<AuthScreen>
                       height: 60,
                       child: CircularProgressIndicator(
                         strokeWidth: 4,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Colors.white,
-                        ),
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     ),
-                    Icon(
-                      Icons.person_add,
-                      size: 28,
-                      color: Colors.white,
-                    ),
+                    Icon(Icons.person_add, size: 28, color: Colors.white),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -373,10 +364,7 @@ class _AuthScreenState extends State<AuthScreen>
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    Colors.amber.shade400,
-                    Colors.orange.shade600,
-                  ],
+                  colors: [Colors.amber.shade400, Colors.orange.shade600],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -405,11 +393,7 @@ class _AuthScreenState extends State<AuthScreen>
                           ),
                         ),
                       ),
-                      Icon(
-                        Icons.stars,
-                        size: 28,
-                        color: Colors.white,
-                      ),
+                      Icon(Icons.stars, size: 28, color: Colors.white),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -444,7 +428,7 @@ class _AuthScreenState extends State<AuthScreen>
 
       // STEP 2: Give signup bonus points
       final bonusResult = await pointsService.giveSignupBonus();
-      
+
       // Refresh points controller
       try {
         final pointsController = Get.find<PointsController>();
@@ -496,7 +480,7 @@ class _AuthScreenState extends State<AuthScreen>
     } else {
       // Close loading dialog
       Get.back();
-      
+
       Get.snackbar(
         'Error',
         result['message'] ?? 'Sign up failed',

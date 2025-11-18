@@ -175,17 +175,16 @@ class PersonalizationController extends GetxController {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setInt(_fontIndexKey, index);
         updateTheme();
-        
+
         // Show restart dialog
         Get.dialog(
           AlertDialog(
             title: const Text('Font Changed'),
-            content: const Text('Please restart the app to apply the new font throughout the entire app.'),
+            content: const Text(
+              'Please restart the app to apply the new font throughout the entire app.',
+            ),
             actions: [
-              TextButton(
-                onPressed: () => Get.back(),
-                child: const Text('OK'),
-              ),
+              TextButton(onPressed: () => Get.back(), child: const Text('OK')),
             ],
           ),
         );
@@ -206,7 +205,7 @@ class PersonalizationController extends GetxController {
   ThemeData getThemeData() {
     final primaryColor = colorPalette[selectedColorIndex.value];
     final fontIndex = selectedFontIndex.value;
-    
+
     // Get text theme based on selected font
     TextTheme? baseTextTheme;
     if (fontIndex > 0) {
@@ -239,7 +238,7 @@ class PersonalizationController extends GetxController {
     if (isDarkMode.value) {
       // Apply text theme for dark mode
       final baseTheme = ThemeData.dark();
-      final darkTextTheme = baseTextTheme != null 
+      final darkTextTheme = baseTextTheme != null
           ? GoogleFonts.getTextTheme(
               fontFamilyValues[fontIndex],
               baseTheme.textTheme,
@@ -308,7 +307,7 @@ class PersonalizationController extends GetxController {
     } else {
       // Apply text theme for light mode
       final baseTheme = ThemeData.light();
-      final lightTextTheme = baseTextTheme != null 
+      final lightTextTheme = baseTextTheme != null
           ? GoogleFonts.getTextTheme(
               fontFamilyValues[fontIndex],
               baseTheme.textTheme,

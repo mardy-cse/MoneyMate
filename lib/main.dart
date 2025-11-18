@@ -108,25 +108,24 @@ class _MoneyMateAppState extends State<MoneyMateApp>
   Widget build(BuildContext context) {
     final personalizationController = Get.find<PersonalizationController>();
 
-    return Obx(
-      () {
-        // Force rebuild when font changes by observing the value
-        // ignore: unused_local_variable
-        final fontIndex = personalizationController.selectedFontIndex.value;
-        
-        return GetMaterialApp(
-          title: 'MoneyMate',
-          debugShowCheckedModeBanner: false,
-          translations: AppTranslations(),
-          locale: personalizationController.currentLocale,
-          fallbackLocale: const Locale('en', 'US'),
-          theme: personalizationController.getThemeData(),
-          darkTheme: personalizationController.getThemeData(),
-          themeMode: personalizationController.isDarkMode.value
-              ? ThemeMode.dark
-              : ThemeMode.light,
-          // Initial route - Start with splash screen
-          initialRoute: '/',
+    return Obx(() {
+      // Force rebuild when font changes by observing the value
+      // ignore: unused_local_variable
+      final fontIndex = personalizationController.selectedFontIndex.value;
+
+      return GetMaterialApp(
+        title: 'MoneyMate',
+        debugShowCheckedModeBanner: false,
+        translations: AppTranslations(),
+        locale: personalizationController.currentLocale,
+        fallbackLocale: const Locale('en', 'US'),
+        theme: personalizationController.getThemeData(),
+        darkTheme: personalizationController.getThemeData(),
+        themeMode: personalizationController.isDarkMode.value
+            ? ThemeMode.dark
+            : ThemeMode.light,
+        // Initial route - Start with splash screen
+        initialRoute: '/',
         // Define named routes
         getPages: [
           GetPage(name: '/', page: () => const SplashScreen()),
@@ -156,7 +155,6 @@ class _MoneyMateAppState extends State<MoneyMateApp>
           GetPage(name: '/lock', page: () => const LockScreen()),
         ],
       );
-      },
-    );
+    });
   }
 }

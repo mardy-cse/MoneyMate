@@ -356,7 +356,7 @@ class FirebaseService extends GetxService {
 
       // Clear all local data to prevent data mixing between accounts
       await _dbHelper.clearAllData();
-      
+
       // Clear points from SharedPreferences
       try {
         final pointsService = PointsService();
@@ -380,16 +380,10 @@ class FirebaseService extends GetxService {
       await _auth.signOut();
 
       print('User signed out and local data cleared');
-      return {
-        'success': true,
-        'message': 'Signed out successfully',
-      };
+      return {'success': true, 'message': 'Signed out successfully'};
     } catch (e) {
       print('Error during sign out: $e');
-      return {
-        'success': false,
-        'message': 'Sign out failed: ${e.toString()}',
-      };
+      return {'success': false, 'message': 'Sign out failed: ${e.toString()}'};
     }
   }
 

@@ -54,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Budget alerts
   List<BudgetAlert> _budgetAlerts = [];
   Set<String> _readNotifications = {};
-  
+
   // Controllers
   final premiumController = Get.find<PremiumController>();
   final pointsController = Get.find<PointsController>();
@@ -116,7 +116,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         colorText: Colors.white,
         duration: const Duration(seconds: 2),
       );
-      pointsController.refreshPoints(); // Refresh points display after daily bonus
+      pointsController
+          .refreshPoints(); // Refresh points display after daily bonus
     }
   }
 
@@ -411,11 +412,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.stars,
-                        size: 18,
-                        color: Colors.white,
-                      ),
+                      const Icon(Icons.stars, size: 18, color: Colors.white),
                       const SizedBox(width: 4),
                       Text(
                         '$points',
