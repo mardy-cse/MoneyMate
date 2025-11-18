@@ -10,22 +10,31 @@ class GeminiService {
   factory GeminiService() => _instance;
   GeminiService._internal();
 
-  // Gemini API Key - Free tier
-  // Get your free API key from: https://makersuite.google.com/app/apikey
-  static const String _apiKey =
-      'AIzaSyDeGq1e6CRXyQvHct5SA5eMOzEWDRpwwY8'; // Replace with your API key
+  // Gemini API Key - REMOVED FOR SECURITY
+  // Get your free API key from: https://aistudio.google.com/app/apikey
+  // Store it in a secure location (NOT in code!)
+  static String? _apiKey;
 
   GenerativeModel? _model;
   bool _isInitialized = false;
 
+  /// Set API Key securely (call this before initialize)
+  void setApiKey(String apiKey) {
+    _apiKey = apiKey;
+  }
+
   /// Initialize Gemini AI
   void initialize() {
     if (_isInitialized) return;
+    if (_apiKey == null || _apiKey!.isEmpty) {
+      print('❌ Gemini API Key not set! Call setApiKey() first.');
+      return;
+    }
 
     try {
       _model = GenerativeModel(
         model: 'gemini-2.0-flash', // Latest stable free model
-        apiKey: _apiKey,
+        apiKey: _apiKey!,
         generationConfig: GenerationConfig(
           temperature: 0.7,
           topK: 40,
@@ -54,7 +63,7 @@ class GeminiService {
   }
 
   /// Check if API key is configured
-  bool get isConfigured => _apiKey != 'YOUR_API_KEY_HERE' && _apiKey.isNotEmpty;
+  bool get isConfigured => _apiKey != null && _apiKey!.isNotEmpty;
 
   /// Generate AI response for financial query
   Future<String> generateResponse(String userQuery) async {
