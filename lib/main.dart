@@ -14,6 +14,7 @@ import 'screens/profile_screen.dart';
 import 'screens/theme_customization_screen.dart';
 import 'screens/lock_screen.dart';
 import 'screens/security_settings_screen.dart';
+import 'screens/chatbot_screen.dart';
 import 'services/database_helper.dart';
 import 'services/currency_service.dart';
 import 'services/language_service.dart';
@@ -153,6 +154,7 @@ class _MoneyMateAppState extends State<MoneyMateApp>
             page: () => const SecuritySettingsScreen(),
           ),
           GetPage(name: '/lock', page: () => const LockScreen()),
+          GetPage(name: '/chatbot', page: () => const ChatbotScreen()),
         ],
       );
     });

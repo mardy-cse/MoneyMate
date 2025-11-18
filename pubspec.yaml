@@ -57,6 +57,8 @@ dependencies:
   firebase_auth: ^5.3.3
   cloud_firestore: ^5.5.2
   connectivity_plus: ^6.1.1
+  # Google Generative AI (Gemini)
+  google_generative_ai: ^0.4.6
 
 dev_dependencies:
   flutter_test:

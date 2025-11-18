@@ -744,6 +744,53 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       });
                     },
                   ),
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.blue.shade400, Colors.purple.shade400],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.smart_toy, color: Colors.white, size: 20),
+                    ),
+                    title: Row(
+                      children: [
+                        const Text('AI Assistant'),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Colors.blue.shade300, Colors.purple.shade300],
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'NEW',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    subtitle: const Text('Ask questions about your expenses'),
+                    onTap: () async {
+                      await Get.toNamed('/chatbot');
+                      // Keep drawer open after returning
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        if (_scaffoldKey.currentState?.isDrawerOpen == false) {
+                          _scaffoldKey.currentState?.openDrawer();
+                        }
+                      });
+                    },
+                  ),
                   const Divider(),
                   // Debt/Loan Tracker (Premium Feature)
                   Obx(() {
