@@ -22,6 +22,7 @@ import 'services/translations.dart';
 import 'services/firebase_service.dart';
 import 'services/proactive_insights_service.dart';
 import 'services/gemini_service.dart';
+import 'config/api_keys.dart';
 import 'controllers/expense_controller.dart';
 import 'controllers/personalization_controller.dart';
 import 'controllers/security_controller.dart';
@@ -62,12 +63,10 @@ void main() async {
   Get.put(ExpenseController()); // ExpenseController will work without Firebase
 
   // Initialize Gemini AI with API Key
-  // IMPORTANT: Get your API key from https://aistudio.google.com/app/apikey
-  // For production: Store this in environment variables or secure storage
+  // API key is stored in lib/config/api_keys.dart (gitignored for security)
   try {
     final geminiService = GeminiService();
-    // TODO: Replace with your actual API key (use secure storage in production!)
-    geminiService.setApiKey('YOUR_NEW_API_KEY_HERE');
+    geminiService.setApiKey(ApiKeys.geminiApiKey);
     geminiService.initialize();
     print('✅ Gemini AI initialized');
   } catch (e) {
