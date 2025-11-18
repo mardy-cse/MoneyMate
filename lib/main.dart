@@ -20,6 +20,7 @@ import 'services/currency_service.dart';
 import 'services/language_service.dart';
 import 'services/translations.dart';
 import 'services/firebase_service.dart';
+import 'services/proactive_insights_service.dart';
 import 'controllers/expense_controller.dart';
 import 'controllers/personalization_controller.dart';
 import 'controllers/security_controller.dart';
@@ -58,6 +59,18 @@ void main() async {
   }
 
   Get.put(ExpenseController()); // ExpenseController will work without Firebase
+
+  // Initialize Proactive Insights Service
+  try {
+    final insightsService = ProactiveInsightsService();
+    await insightsService.initialize();
+    await insightsService.scheduleDailyMorningInsight();
+    await insightsService.scheduleDailyEveningSummary();
+    await insightsService.scheduleWeeklySummary();
+    print('✅ Proactive Insights initialized');
+  } catch (e) {
+    print('❌ Proactive Insights error: $e');
+  }
 
   runApp(const MoneyMateApp());
 }

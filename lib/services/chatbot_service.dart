@@ -13,10 +13,10 @@ class ChatbotService {
 
   // Get expense controller
   ExpenseController get _expenseController => Get.find<ExpenseController>();
-  
+
   // Gemini AI service (public for status checking)
   final GeminiService geminiService = GeminiService();
-  
+
   // AI mode toggle (true = Gemini AI, false = Rule-based)
   bool useAI = true; // Gemini 2.0 Flash enabled!
 
@@ -66,58 +66,126 @@ class ChatbotService {
   // Intent Detection Methods
   bool _isGreeting(String message) {
     final greetings = [
-      'হাই', 'হ্যালো', 'হেলো', 'নমস্কার', 'আসসালামু আলাইকুম',
-      'hi', 'hello', 'hey', 'good morning', 'good evening', 'good afternoon'
+      'হাই',
+      'হ্যালো',
+      'হেলো',
+      'নমস্কার',
+      'আসসালামু আলাইকুম',
+      'hi',
+      'hello',
+      'hey',
+      'good morning',
+      'good evening',
+      'good afternoon',
     ];
     return greetings.any((greeting) => message.contains(greeting));
   }
 
   bool _isExpenseQuery(String message) {
     final keywords = [
-      'খরচ', 'ব্যয়', 'টাকা', 'কত', 'মোট', 'আজ', 'আজকের', 'today', 'total',
-      'expense', 'spent', 'spending', 'cost', 'how much', 'কতো', 'এ মাসে',
-      'এই মাসে', 'this month', 'this week', 'সপ্তাহে', 'গতকাল', 'গত কাল',
-      'yesterday', 'last day', 'আগের দিন'
+      'খরচ',
+      'ব্যয়',
+      'টাকা',
+      'কত',
+      'মোট',
+      'আজ',
+      'আজকের',
+      'today',
+      'total',
+      'expense',
+      'spent',
+      'spending',
+      'cost',
+      'how much',
+      'কতো',
+      'এ মাসে',
+      'এই মাসে',
+      'this month',
+      'this week',
+      'সপ্তাহে',
+      'গতকাল',
+      'গত কাল',
+      'yesterday',
+      'last day',
+      'আগের দিন',
     ];
     return keywords.any((keyword) => message.contains(keyword));
   }
 
   bool _isCategoryQuery(String message) {
     final categories = [
-      'food', 'transport', 'bills', 'shopping', 'entertainment',
-      'healthcare', 'education', 'খাবার', 'যাতায়াত', 'বিল', 'কেনাকাটা'
+      'food',
+      'transport',
+      'bills',
+      'shopping',
+      'entertainment',
+      'healthcare',
+      'education',
+      'খাবার',
+      'যাতায়াত',
+      'বিল',
+      'কেনাকাটা',
     ];
     return categories.any((category) => message.contains(category));
   }
 
   bool _isBudgetAdvice(String message) {
     final keywords = [
-      'বাজেট', 'পরিকল্পনা', 'budget', 'plan', 'advice', 'suggest',
-      'পরামর্শ', 'উপদেশ', 'কিভাবে', 'how to', 'should i'
+      'বাজেট',
+      'পরিকল্পনা',
+      'budget',
+      'plan',
+      'advice',
+      'suggest',
+      'পরামর্শ',
+      'উপদেশ',
+      'কিভাবে',
+      'how to',
+      'should i',
     ];
     return keywords.any((keyword) => message.contains(keyword));
   }
 
   bool _isSavingsTips(String message) {
     final keywords = [
-      'সেভ', 'সঞ্চয়', 'বাঁচানো', 'save', 'saving', 'reduce', 'কমানো',
-      'tips', 'টিপস'
+      'সেভ',
+      'সঞ্চয়',
+      'বাঁচানো',
+      'save',
+      'saving',
+      'reduce',
+      'কমানো',
+      'tips',
+      'টিপস',
     ];
     return keywords.any((keyword) => message.contains(keyword));
   }
 
   bool _isSpendingPattern(String message) {
     final keywords = [
-      'pattern', 'trend', 'ধরণ', 'প্যাটার্ন', 'analysis', 'বিশ্লেষণ',
-      'habit', 'অভ্যাস'
+      'pattern',
+      'trend',
+      'ধরণ',
+      'প্যাটার্ন',
+      'analysis',
+      'বিশ্লেষণ',
+      'habit',
+      'অভ্যাস',
     ];
     return keywords.any((keyword) => message.contains(keyword));
   }
 
   bool _isComparison(String message) {
     final keywords = [
-      'compare', 'comparison', 'তুলনা', 'গত মাস', 'last month',
-      'previous', 'আগের', 'difference', 'পার্থক্য'
+      'compare',
+      'comparison',
+      'তুলনা',
+      'গত মাস',
+      'last month',
+      'previous',
+      'আগের',
+      'difference',
+      'পার্থক্য',
     ];
     return keywords.any((keyword) => message.contains(keyword));
   }
@@ -157,26 +225,32 @@ class ChatbotService {
 
     // Detect time period
     String response = '';
-    if (message.contains('গতকাল') || message.contains('গত কাল') || message.contains('yesterday')) {
+    if (message.contains('গতকাল') ||
+        message.contains('গত কাল') ||
+        message.contains('yesterday')) {
       final yesterdayExpenses = _getYesterdayExpenses();
       final yesterdayTotal = yesterdayExpenses.fold<double>(
-        0, (sum, expense) => sum + expense.amount.abs()
+        0,
+        (sum, expense) => sum + expense.amount.abs(),
       );
-      response = '📅 গতকালের খরচ:\n'
+      response =
+          '📅 গতকালের খরচ:\n'
           '💰 Total: ৳${yesterdayTotal.toStringAsFixed(2)}\n'
           '📝 Expenses: ${yesterdayExpenses.length} টি\n\n'
           '${_getYesterdayBreakdown()}';
     } else if (message.contains('আজ') || message.contains('today')) {
       final todayTotal = _expenseController.totalToday.value;
       final todayCount = _getTodayExpenses().length;
-      response = '📅 আজকের খরচ:\n'
+      response =
+          '📅 আজকের খরচ:\n'
           '💰 Total: ৳${todayTotal.toStringAsFixed(2)}\n'
           '📝 Expenses: $todayCount টি\n\n'
           '${_getTodayBreakdown()}';
     } else if (message.contains('সপ্তাহ') || message.contains('week')) {
       final weeklyTotal = _expenseController.totalWeekly.value;
       final weeklyCount = _getWeeklyExpenses().length;
-      response = '📅 এই সপ্তাহের খরচ:\n'
+      response =
+          '📅 এই সপ্তাহের খরচ:\n'
           '💰 Total: ৳${weeklyTotal.toStringAsFixed(2)}\n'
           '📝 Expenses: $weeklyCount টি\n\n'
           '${_getWeeklyBreakdown()}';
@@ -184,7 +258,8 @@ class ChatbotService {
       final monthlyTotal = _expenseController.totalMonthly.value;
       final monthlyCount = _getMonthlyExpenses().length;
       final avgDaily = monthlyTotal / DateTime.now().day;
-      response = '📅 এই মাসের খরচ:\n'
+      response =
+          '📅 এই মাসের খরচ:\n'
           '💰 Total: ৳${monthlyTotal.toStringAsFixed(2)}\n'
           '📝 Expenses: $monthlyCount টি\n'
           '📊 Daily Average: ৳${avgDaily.toStringAsFixed(2)}\n\n'
@@ -192,9 +267,11 @@ class ChatbotService {
     } else {
       // General expense info
       final totalAll = expenses.fold<double>(
-        0, (sum, expense) => sum + expense.amount.abs()
+        0,
+        (sum, expense) => sum + expense.amount.abs(),
       );
-      response = '💼 Overall Summary:\n'
+      response =
+          '💼 Overall Summary:\n'
           '💰 Total Expenses: ৳${totalAll.toStringAsFixed(2)}\n'
           '📝 Total Transactions: ${expenses.length} টি\n'
           '📅 Since: ${_getOldestExpenseDate()}\n\n'
@@ -234,12 +311,13 @@ class ChatbotService {
     }
 
     if (category != null) {
-      final categoryExpenses = expenses.where((e) => 
-        e.category.toLowerCase() == category!.toLowerCase()
-      ).toList();
-      
+      final categoryExpenses = expenses
+          .where((e) => e.category.toLowerCase() == category!.toLowerCase())
+          .toList();
+
       final categoryTotal = categoryExpenses.fold<double>(
-        0, (sum, expense) => sum + expense.amount.abs()
+        0,
+        (sum, expense) => sum + expense.amount.abs(),
       );
 
       final monthlyExpenses = _getMonthlyExpenses();
@@ -248,7 +326,8 @@ class ChatbotService {
           .fold<double>(0, (sum, expense) => sum + expense.amount.abs());
 
       return ChatMessage(
-        text: '🏷️ ${category.toUpperCase()} Category:\n\n'
+        text:
+            '🏷️ ${category.toUpperCase()} Category:\n\n'
             '💰 All Time: ৳${categoryTotal.toStringAsFixed(2)}\n'
             '📝 Transactions: ${categoryExpenses.length} টি\n'
             '📅 This Month: ৳${monthlyCategoryTotal.toStringAsFixed(2)}\n\n'
@@ -267,7 +346,8 @@ class ChatbotService {
     String response = '📊 Category Breakdown (This Month):\n\n';
     for (var i = 0; i < topCategories.length && i < 5; i++) {
       final entry = topCategories[i];
-      response += '${i + 1}. ${entry.key.toUpperCase()}: ৳${entry.value.toStringAsFixed(2)}\n';
+      response +=
+          '${i + 1}. ${entry.key.toUpperCase()}: ৳${entry.value.toStringAsFixed(2)}\n';
     }
 
     return ChatMessage(
@@ -287,17 +367,20 @@ class ChatbotService {
     advice += '📊 Current Status:\n';
     advice += '• Monthly spending: ৳${monthlyTotal.toStringAsFixed(2)}\n';
     advice += '• Daily average: ৳${avgDaily.toStringAsFixed(2)}\n';
-    advice += '• Projected (30 days): ৳${projectedMonthly.toStringAsFixed(2)}\n\n';
+    advice +=
+        '• Projected (30 days): ৳${projectedMonthly.toStringAsFixed(2)}\n\n';
 
     advice += '🎯 Recommendations:\n';
 
     // Analyze top spending categories
     final categoryTotals = _getCategoryTotals();
-    final topCategory = categoryTotals.entries
-        .reduce((a, b) => a.value > b.value ? a : b);
+    final topCategory = categoryTotals.entries.reduce(
+      (a, b) => a.value > b.value ? a : b,
+    );
 
     if (topCategory.value > monthlyTotal * 0.4) {
-      advice += '⚠️ ${topCategory.key} তে খরচ অনেক বেশি (${((topCategory.value / monthlyTotal) * 100).toStringAsFixed(0)}%)!\n';
+      advice +=
+          '⚠️ ${topCategory.key} তে খরচ অনেক বেশি (${((topCategory.value / monthlyTotal) * 100).toStringAsFixed(0)}%)!\n';
       advice += '   Try to reduce ${topCategory.key} expenses by 20%.\n\n';
     }
 
@@ -329,7 +412,7 @@ class ChatbotService {
           '4. 🛍️ Avoid impulse shopping\n'
           '5. 📱 Cancel unused subscriptions\n\n'
           'Small changes = Big savings! 💰',
-      
+
       '🌟 আজকের টিপস:\n\n'
           '💰 "একটি টাকা বাঁচানো = একটি টাকা আয়"\n\n'
           '• সকালে coffee shop এর বদলে ঘরে কফি (৳100/day saved)\n'
@@ -337,7 +420,7 @@ class ChatbotService {
           '• Discount & cashback offers ব্যবহার করুন\n'
           '• Emergency fund রাখুন (monthly expense এর 3x)\n\n'
           'Start today! 🚀',
-      
+
       '📊 Smart Saving Strategy:\n\n'
           '1st Week: Track expenses only 📝\n'
           '2nd Week: Identify unnecessary spending 🔍\n'
@@ -381,12 +464,16 @@ class ChatbotService {
 
     String response = '📈 Spending Pattern Analysis:\n\n';
     response += '🔍 Weekly Pattern:\n';
-    response += '• Highest: ${_getDayName(maxDay.key)} (৳${maxDay.value.toStringAsFixed(2)})\n';
-    response += '• Lowest: ${_getDayName(minDay.key)} (৳${minDay.value.toStringAsFixed(2)})\n\n';
+    response +=
+        '• Highest: ${_getDayName(maxDay.key)} (৳${maxDay.value.toStringAsFixed(2)})\n';
+    response +=
+        '• Lowest: ${_getDayName(minDay.key)} (৳${minDay.value.toStringAsFixed(2)})\n\n';
 
     // Time-based pattern
     final morning = monthlyExpenses.where((e) => e.date.hour < 12).length;
-    final afternoon = monthlyExpenses.where((e) => e.date.hour >= 12 && e.date.hour < 18).length;
+    final afternoon = monthlyExpenses
+        .where((e) => e.date.hour >= 12 && e.date.hour < 18)
+        .length;
     final evening = monthlyExpenses.where((e) => e.date.hour >= 18).length;
 
     response += '⏰ Time Pattern:\n';
@@ -423,10 +510,12 @@ class ChatbotService {
     }
 
     final thisMonthTotal = thisMonthExpenses.fold<double>(
-      0, (sum, e) => sum + e.amount.abs()
+      0,
+      (sum, e) => sum + e.amount.abs(),
     );
     final lastMonthTotal = lastMonthExpenses.fold<double>(
-      0, (sum, e) => sum + e.amount.abs()
+      0,
+      (sum, e) => sum + e.amount.abs(),
     );
 
     final difference = thisMonthTotal - lastMonthTotal;
@@ -435,14 +524,17 @@ class ChatbotService {
     String response = '📊 Month-to-Month Comparison:\n\n';
     response += '📅 This Month: ৳${thisMonthTotal.toStringAsFixed(2)}\n';
     response += '📅 Last Month: ৳${lastMonthTotal.toStringAsFixed(2)}\n\n';
-    response += '📈 Difference: ${difference >= 0 ? '+' : ''}৳${difference.toStringAsFixed(2)}\n';
-    response += '📊 Change: ${percentChange >= 0 ? '+' : ''}${percentChange.toStringAsFixed(1)}%\n\n';
+    response +=
+        '📈 Difference: ${difference >= 0 ? '+' : ''}৳${difference.toStringAsFixed(2)}\n';
+    response +=
+        '📊 Change: ${percentChange >= 0 ? '+' : ''}${percentChange.toStringAsFixed(1)}%\n\n';
 
     if (difference > 0) {
       response += '⚠️ এই মাসে খরচ ${percentChange.toStringAsFixed(0)}% বেশি!\n';
       response += '💡 Try to reduce unnecessary expenses.';
     } else {
-      response += '✅ Great! খরচ ${percentChange.abs().toStringAsFixed(0)}% কমেছে!\n';
+      response +=
+          '✅ Great! খরচ ${percentChange.abs().toStringAsFixed(0)}% কমেছে!\n';
       response += '🌟 Keep up the good work!';
     }
 
@@ -456,7 +548,8 @@ class ChatbotService {
 
   ChatMessage _generateHelp() {
     return ChatMessage(
-      text: '🤖 আমি কি কি করতে পারি:\n\n'
+      text:
+          '🤖 আমি কি কি করতে পারি:\n\n'
           '💰 Expense Queries:\n'
           '• "আজকের খরচ কত?"\n'
           '• "গতকালের খরচ?"\n'
@@ -543,7 +636,7 @@ class ChatbotService {
 
     final categories = <String, double>{};
     for (var expense in expenses) {
-      categories[expense.category] = 
+      categories[expense.category] =
           (categories[expense.category] ?? 0) + expense.amount.abs();
     }
 
@@ -561,7 +654,7 @@ class ChatbotService {
 
     final categories = <String, double>{};
     for (var expense in expenses) {
-      categories[expense.category] = 
+      categories[expense.category] =
           (categories[expense.category] ?? 0) + expense.amount.abs();
     }
 
@@ -579,7 +672,7 @@ class ChatbotService {
 
     final categories = <String, double>{};
     for (var expense in expenses) {
-      categories[expense.category] = 
+      categories[expense.category] =
           (categories[expense.category] ?? 0) + expense.amount.abs();
     }
 
@@ -588,7 +681,8 @@ class ChatbotService {
 
     String breakdown = 'Top Categories:\n';
     for (var i = 0; i < sorted.length && i < 3; i++) {
-      breakdown += '${i + 1}. ${sorted[i].key}: ৳${sorted[i].value.toStringAsFixed(2)}\n';
+      breakdown +=
+          '${i + 1}. ${sorted[i].key}: ৳${sorted[i].value.toStringAsFixed(2)}\n';
     }
 
     return breakdown;
@@ -600,7 +694,7 @@ class ChatbotService {
 
     final categories = <String, double>{};
     for (var expense in expenses) {
-      categories[expense.category] = 
+      categories[expense.category] =
           (categories[expense.category] ?? 0) + expense.amount.abs();
     }
 
@@ -609,7 +703,8 @@ class ChatbotService {
 
     String breakdown = 'Top Categories:\n';
     for (var i = 0; i < sorted.length && i < 3; i++) {
-      breakdown += '${i + 1}. ${sorted[i].key}: ৳${sorted[i].value.toStringAsFixed(2)}\n';
+      breakdown +=
+          '${i + 1}. ${sorted[i].key}: ৳${sorted[i].value.toStringAsFixed(2)}\n';
     }
 
     return breakdown;
@@ -620,7 +715,7 @@ class ChatbotService {
     final categories = <String, double>{};
 
     for (var expense in expenses) {
-      categories[expense.category] = 
+      categories[expense.category] =
           (categories[expense.category] ?? 0) + expense.amount.abs();
     }
 
@@ -637,7 +732,8 @@ class ChatbotService {
 
     String result = 'Recent Expenses:\n';
     for (var expense in expenses) {
-      result += '• ${expense.title}: ৳${expense.amount.abs().toStringAsFixed(2)} '
+      result +=
+          '• ${expense.title}: ৳${expense.amount.abs().toStringAsFixed(2)} '
           '(${_formatDate(expense.date)})\n';
     }
 
@@ -647,8 +743,9 @@ class ChatbotService {
   String _getOldestExpenseDate() {
     if (_expenseController.expenses.isEmpty) return 'N/A';
 
-    final oldest = _expenseController.expenses.reduce((a, b) => 
-        a.date.isBefore(b.date) ? a : b);
+    final oldest = _expenseController.expenses.reduce(
+      (a, b) => a.date.isBefore(b.date) ? a : b,
+    );
 
     return _formatDate(oldest.date);
   }

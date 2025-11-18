@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/chatbot_service.dart';
+import '../services/voice_service.dart';
 
 class ChatbotScreen extends StatefulWidget {
   const ChatbotScreen({super.key});
@@ -8,31 +9,62 @@ class ChatbotScreen extends StatefulWidget {
   State<ChatbotScreen> createState() => _ChatbotScreenState();
 }
 
-class _ChatbotScreenState extends State<ChatbotScreen> {
+class _ChatbotScreenState extends State<ChatbotScreen>
+    with SingleTickerProviderStateMixin {
   final ChatbotService _chatbotService = ChatbotService();
+  final VoiceService _voiceService = VoiceService();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
   bool _isTyping = false;
+  bool _isListening = false;
+  bool _voiceInputEnabled = false;
+  bool _voiceOutputEnabled = false;
+  late AnimationController _micAnimationController;
 
   @override
   void initState() {
     super.initState();
+    _micAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+
+    // Initialize voice service
+    _initializeVoice();
+
     // Welcome message
-    _addMessage(ChatMessage(
-      text: '👋 Hello! আমি আপনার Financial Assistant।\n\n'
-          'আপনার expense সম্পর্কে যেকোনো প্রশ্ন করুন!\n'
-          'উদাহরণ: "আজকের খরচ কত?" বা "help"',
-      isUser: false,
-      timestamp: DateTime.now(),
-      type: MessageType.greeting,
-    ));
+    _addMessage(
+      ChatMessage(
+        text:
+            '👋 Hello! আমি আপনার Financial Assistant।\n\n'
+            'আপনার expense সম্পর্কে যেকোনো প্রশ্ন করুন!\n'
+            'উদাহরণ: "আজকের খরচ কত?" বা "help"\n\n'
+            '🎤 Voice input available! Tap mic icon.',
+        isUser: false,
+        timestamp: DateTime.now(),
+        type: MessageType.greeting,
+      ),
+    );
+  }
+
+  Future<void> _initializeVoice() async {
+    try {
+      await _voiceService.initialize();
+      setState(() {
+        _voiceInputEnabled = _voiceService.isInitialized;
+      });
+    } catch (e) {
+      print('Voice initialization failed: $e');
+    }
   }
 
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _micAnimationController.dispose();
+    _voiceService.dispose();
     super.dispose();
   }
 
@@ -60,11 +92,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     if (text.isEmpty) return;
 
     // Add user message
-    _addMessage(ChatMessage(
-      text: text,
-      isUser: true,
-      timestamp: DateTime.now(),
-    ));
+    _addMessage(
+      ChatMessage(text: text, isUser: true, timestamp: DateTime.now()),
+    );
 
     _messageController.clear();
 
@@ -79,24 +109,139 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     // Get bot response
     try {
       final response = await _chatbotService.processMessage(text);
-      
+
       setState(() {
         _isTyping = false;
       });
-      
+
       _addMessage(response);
+
+      // Speak response if voice output enabled
+      if (_voiceOutputEnabled && response.text.isNotEmpty) {
+        await _speakResponse(response.text);
+      }
     } catch (e) {
       setState(() {
         _isTyping = false;
       });
-      
-      _addMessage(ChatMessage(
-        text: 'দুঃখিত, একটা error হয়েছে। আবার try করুন। 😔',
-        isUser: false,
-        timestamp: DateTime.now(),
-        type: MessageType.fallback,
-      ));
+
+      _addMessage(
+        ChatMessage(
+          text: 'দুঃখিত, একটা error হয়েছে। আবার try করুন। 😔',
+          isUser: false,
+          timestamp: DateTime.now(),
+          type: MessageType.fallback,
+        ),
+      );
     }
+  }
+
+  Future<void> _startVoiceInput() async {
+    if (!_voiceInputEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Voice input not available')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isListening = true;
+    });
+
+    try {
+      // Show listening dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedBuilder(
+                animation: _micAnimationController,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: 1.0 + (_micAnimationController.value * 0.3),
+                    child: Icon(
+                      Icons.mic,
+                      size: 64,
+                      color: Colors.red.withOpacity(
+                        0.7 + (_micAnimationController.value * 0.3),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Listening...',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text('Speak now'),
+            ],
+          ),
+        ),
+      );
+
+      final recognizedText = await _voiceService.startListening(
+        timeout: const Duration(seconds: 10),
+        onPartialResult: (text) {
+          print('Partial: $text');
+        },
+      );
+
+      Navigator.of(context).pop(); // Close dialog
+
+      setState(() {
+        _isListening = false;
+      });
+
+      if (recognizedText.isNotEmpty) {
+        _messageController.text = recognizedText;
+        await _sendMessage();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No speech detected. Try again.')),
+        );
+      }
+    } catch (e) {
+      Navigator.of(context).pop();
+      setState(() {
+        _isListening = false;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Voice input error: $e')));
+    }
+  }
+
+  Future<void> _speakResponse(String text) async {
+    try {
+      // Clean text for speech (remove emojis and special characters)
+      final cleanText = text.replaceAll(RegExp(r'[^\w\s৳.,!?-]'), '');
+      await _voiceService.speak(cleanText, rate: 0.5);
+    } catch (e) {
+      print('TTS error: $e');
+    }
+  }
+
+  void _toggleVoiceOutput() {
+    setState(() {
+      _voiceOutputEnabled = !_voiceOutputEnabled;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _voiceOutputEnabled
+              ? '🔊 Voice output enabled'
+              : '🔇 Voice output disabled',
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   void _sendQuickReply(String message) {
@@ -116,11 +261,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                 color: Colors.blue.shade100,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
-                Icons.smart_toy,
-                color: Colors.blue,
-                size: 24,
-              ),
+              child: const Icon(Icons.smart_toy, color: Colors.blue, size: 24),
             ),
             const SizedBox(width: 12),
             Column(
@@ -129,14 +270,14 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                 Text(
                   'Financial Assistant',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   'Always ready to help',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                 ),
               ],
             ),
@@ -144,6 +285,18 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         ),
         backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(
+              _voiceOutputEnabled ? Icons.volume_up : Icons.volume_off,
+              color: _voiceOutputEnabled ? Colors.blue : Colors.grey,
+            ),
+            onPressed: _toggleVoiceOutput,
+            tooltip: _voiceOutputEnabled
+                ? 'Disable voice output'
+                : 'Enable voice output',
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -241,7 +394,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide(color: Colors.blue.shade300, width: 2),
+                        borderSide: BorderSide(
+                          color: Colors.blue.shade300,
+                          width: 2,
+                        ),
                       ),
                       filled: true,
                       fillColor: Colors.grey.shade50,
@@ -249,9 +405,23 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                         horizontal: 20,
                         vertical: 12,
                       ),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.send, color: Colors.blue),
-                        onPressed: _sendMessage,
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_voiceInputEnabled)
+                            IconButton(
+                              icon: Icon(
+                                _isListening ? Icons.mic : Icons.mic_none,
+                                color: _isListening ? Colors.red : Colors.grey,
+                              ),
+                              onPressed: _isListening ? null : _startVoiceInput,
+                              tooltip: 'Voice Input',
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.send, color: Colors.blue),
+                            onPressed: _sendMessage,
+                          ),
+                        ],
                       ),
                     ),
                     textCapitalization: TextCapitalization.sentences,
@@ -275,8 +445,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUser) ...[
@@ -286,11 +457,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                 color: Colors.blue.shade100,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Icon(
-                Icons.smart_toy,
-                size: 20,
-                color: Colors.blue,
-              ),
+              child: const Icon(Icons.smart_toy, size: 20, color: Colors.blue),
             ),
             const SizedBox(width: 8),
           ],
@@ -343,11 +510,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             CircleAvatar(
               radius: 16,
               backgroundColor: Colors.blue.shade500,
-              child: const Icon(
-                Icons.person,
-                size: 18,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.person, size: 18, color: Colors.white),
             ),
           ],
         ],

@@ -749,23 +749,36 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.blue.shade400, Colors.purple.shade400],
+                          colors: [
+                            Colors.blue.shade400,
+                            Colors.purple.shade400,
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.smart_toy, color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.smart_toy,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                     title: Row(
                       children: [
                         const Text('AI Assistant'),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [Colors.blue.shade300, Colors.purple.shade300],
+                              colors: [
+                                Colors.blue.shade300,
+                                Colors.purple.shade300,
+                              ],
                             ),
                             borderRadius: BorderRadius.circular(8),
                           ),

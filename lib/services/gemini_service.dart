@@ -1,7 +1,6 @@
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:get/get.dart';
 import '../controllers/expense_controller.dart';
-import '../models/expense.dart';
 
 /// Google Gemini AI Service for Intelligent Financial Assistant
 /// Free tier: 15 requests per minute, 1500 requests per day
@@ -13,15 +12,16 @@ class GeminiService {
 
   // Gemini API Key - Free tier
   // Get your free API key from: https://makersuite.google.com/app/apikey
-  static const String _apiKey = 'AIzaSyDeGq1e6CRXyQvHct5SA5eMOzEWDRpwwY8'; // Replace with your API key
-  
+  static const String _apiKey =
+      'AIzaSyDeGq1e6CRXyQvHct5SA5eMOzEWDRpwwY8'; // Replace with your API key
+
   GenerativeModel? _model;
   bool _isInitialized = false;
 
   /// Initialize Gemini AI
   void initialize() {
     if (_isInitialized) return;
-    
+
     try {
       _model = GenerativeModel(
         model: 'gemini-2.0-flash', // Latest stable free model
@@ -35,8 +35,14 @@ class GeminiService {
         safetySettings: [
           SafetySetting(HarmCategory.harassment, HarmBlockThreshold.medium),
           SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.medium),
-          SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.medium),
-          SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.medium),
+          SafetySetting(
+            HarmCategory.sexuallyExplicit,
+            HarmBlockThreshold.medium,
+          ),
+          SafetySetting(
+            HarmCategory.dangerousContent,
+            HarmBlockThreshold.medium,
+          ),
         ],
       );
       _isInitialized = true;
@@ -68,17 +74,17 @@ class GeminiService {
     try {
       // Get expense data context
       final expenseContext = await _buildExpenseContext();
-      
+
       // Build prompt with context
       final prompt = _buildPrompt(userQuery, expenseContext);
-      
+
       // Generate response
       final response = await _model!.generateContent([Content.text(prompt)]);
-      
+
       if (response.text == null || response.text!.isEmpty) {
         return '❌ Could not generate response. Please try again.';
       }
-      
+
       return response.text!;
     } catch (e) {
       print('Gemini API Error: $e');
@@ -101,36 +107,54 @@ class GeminiService {
 
       // Get today's expenses
       final now = DateTime.now();
-      final todayExpenses = expenses.where((e) =>
-          e.date.year == now.year &&
-          e.date.month == now.month &&
-          e.date.day == now.day).toList();
+      final todayExpenses = expenses
+          .where(
+            (e) =>
+                e.date.year == now.year &&
+                e.date.month == now.month &&
+                e.date.day == now.day,
+          )
+          .toList();
 
       // Get yesterday's expenses
       final yesterday = now.subtract(const Duration(days: 1));
-      final yesterdayExpenses = expenses.where((e) =>
-          e.date.year == yesterday.year &&
-          e.date.month == yesterday.month &&
-          e.date.day == yesterday.day).toList();
+      final yesterdayExpenses = expenses
+          .where(
+            (e) =>
+                e.date.year == yesterday.year &&
+                e.date.month == yesterday.month &&
+                e.date.day == yesterday.day,
+          )
+          .toList();
 
       // Get this week's expenses
       final weekStart = now.subtract(Duration(days: now.weekday - 1));
-      final weekExpenses = expenses.where((e) =>
-          e.date.isAfter(weekStart) && e.date.isBefore(now)).toList();
+      final weekExpenses = expenses
+          .where((e) => e.date.isAfter(weekStart) && e.date.isBefore(now))
+          .toList();
 
       // Get this month's expenses
-      final monthExpenses = expenses.where((e) =>
-          e.date.year == now.year && e.date.month == now.month).toList();
+      final monthExpenses = expenses
+          .where((e) => e.date.year == now.year && e.date.month == now.month)
+          .toList();
 
       // Calculate totals
       final todayTotal = todayExpenses.fold<double>(
-          0, (sum, e) => sum + e.amount.abs());
+        0,
+        (sum, e) => sum + e.amount.abs(),
+      );
       final yesterdayTotal = yesterdayExpenses.fold<double>(
-          0, (sum, e) => sum + e.amount.abs());
+        0,
+        (sum, e) => sum + e.amount.abs(),
+      );
       final weekTotal = weekExpenses.fold<double>(
-          0, (sum, e) => sum + e.amount.abs());
+        0,
+        (sum, e) => sum + e.amount.abs(),
+      );
       final monthTotal = monthExpenses.fold<double>(
-          0, (sum, e) => sum + e.amount.abs());
+        0,
+        (sum, e) => sum + e.amount.abs(),
+      );
 
       // Category breakdown (this month)
       final categoryTotals = <String, double>{};
@@ -159,7 +183,9 @@ class GeminiService {
       context.writeln('THIS MONTH:');
       context.writeln('  Total: ৳${monthTotal.toStringAsFixed(2)}');
       context.writeln('  Transactions: ${monthExpenses.length}');
-      context.writeln('  Daily Average: ৳${(monthTotal / now.day).toStringAsFixed(2)}');
+      context.writeln(
+        '  Daily Average: ৳${(monthTotal / now.day).toStringAsFixed(2)}',
+      );
       context.writeln('');
       context.writeln('CATEGORY BREAKDOWN (THIS MONTH):');
       final sortedCategories = categoryTotals.entries.toList()
@@ -167,14 +193,17 @@ class GeminiService {
       for (var i = 0; i < sortedCategories.length && i < 5; i++) {
         final entry = sortedCategories[i];
         final percentage = (entry.value / monthTotal * 100).toStringAsFixed(1);
-        context.writeln('  ${entry.key}: ৳${entry.value.toStringAsFixed(2)} ($percentage%)');
+        context.writeln(
+          '  ${entry.key}: ৳${entry.value.toStringAsFixed(2)} ($percentage%)',
+        );
       }
       context.writeln('');
       context.writeln('RECENT EXPENSES (Last 5):');
       for (var i = 0; i < expenses.length && i < 5; i++) {
         final expense = expenses[i];
         context.writeln(
-            '  - ${expense.title}: ৳${expense.amount.abs().toStringAsFixed(2)} (${expense.category}) - ${_formatDate(expense.date)}');
+          '  - ${expense.title}: ৳${expense.amount.abs().toStringAsFixed(2)} (${expense.category}) - ${_formatDate(expense.date)}',
+        );
       }
 
       return context.toString();
@@ -214,11 +243,11 @@ RESPONSE (format nicely with emojis and bullet points):
   /// Test API connection
   Future<bool> testConnection() async {
     if (!isConfigured) return false;
-    
+
     try {
       initialize();
       final response = await _model?.generateContent([
-        Content.text('Say "Hello! Gemini AI is working!" in one line.')
+        Content.text('Say "Hello! Gemini AI is working!" in one line.'),
       ]);
       return response?.text != null && response!.text!.isNotEmpty;
     } catch (e) {
