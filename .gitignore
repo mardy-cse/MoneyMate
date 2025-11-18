@@ -48,6 +48,7 @@ app.*.map.json
 .env
 .env.local
 .env.*.local
+lib/config/api_keys.dart
 api_keys.dart
 secrets.dart
 **/google-services.json
