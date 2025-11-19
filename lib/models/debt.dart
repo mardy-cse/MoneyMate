@@ -28,9 +28,8 @@ class Debt {
   double get remainingAmount => amount - paidAmount;
   double get progressPercentage => amount > 0 ? (paidAmount / amount * 100) : 0;
   bool get isCompleted => paidAmount >= amount;
-  bool get isOverdue => dueDate != null && 
-      DateTime.now().isAfter(dueDate!) && 
-      !isCompleted;
+  bool get isOverdue =>
+      dueDate != null && DateTime.now().isAfter(dueDate!) && !isCompleted;
 
   Map<String, dynamic> toMap() {
     return {
@@ -57,7 +56,9 @@ class Debt {
       type: map['type'] as String,
       description: map['description'] as String?,
       date: DateTime.parse(map['date'] as String),
-      dueDate: map['dueDate'] != null ? DateTime.parse(map['dueDate'] as String) : null,
+      dueDate: map['dueDate'] != null
+          ? DateTime.parse(map['dueDate'] as String)
+          : null,
       phoneNumber: map['phoneNumber'] as String?,
       status: map['status'] as String? ?? 'pending',
       createdAt: DateTime.parse(map['createdAt'] as String),

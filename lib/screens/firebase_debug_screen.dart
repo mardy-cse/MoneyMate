@@ -6,7 +6,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:get/get.dart';
 
 class FirebaseDebugScreen extends StatefulWidget {
-  const FirebaseDebugScreen({Key? key}) : super(key: key);
+  const FirebaseDebugScreen({super.key});
 
   @override
   State<FirebaseDebugScreen> createState() => _FirebaseDebugScreenState();

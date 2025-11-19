@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../models/expense.dart';
+import '../models/category_suggestion.dart';
 import '../controllers/expense_controller.dart';
 import '../services/currency_service.dart';
 import '../services/ai_categorization_service.dart';
@@ -738,7 +739,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
               // Category Dropdown
               DropdownButtonFormField<String>(
-                value: _selectedCategory,
+                initialValue: _selectedCategory,
                 decoration: InputDecoration(
                   labelText: 'category'.tr,
                   prefixIcon: const Icon(Icons.category),

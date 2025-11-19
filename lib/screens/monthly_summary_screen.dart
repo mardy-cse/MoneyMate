@@ -391,12 +391,12 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                                 ],
                               ),
                             );
-                          }).toList(),
+                          }),
                         ],
                       ],
                     ),
                   );
-                }).toList(),
+                }),
               ],
 
               // Footer
@@ -961,7 +961,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                     ],
                   ),
                 );
-              }).toList(),
+              }),
             ],
           ],
         ),
@@ -1413,7 +1413,7 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                 // Monthly Cards
                 ...groupedExpenses.entries.map((entry) {
                   return _buildMonthCard(entry.key, entry.value);
-                }).toList(),
+                }),
 
                 const SizedBox(height: 20),
               ],

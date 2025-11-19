@@ -12,29 +12,13 @@ import '../services/database_helper.dart';
 import '../services/firebase_service.dart';
 import '../services/points_service.dart';
 import '../widgets/custom_search_bar.dart';
+import '../models/budget_alert.dart';
 import 'budget_screen.dart';
 import 'expense_detail_screen.dart';
 import 'cloud_sync_screen.dart';
 import 'auth_screen.dart';
 import 'notification_screen.dart';
 import 'debt_screen.dart';
-
-// Budget Alert Model
-class BudgetAlert {
-  final String title;
-  final double percentage;
-  final double spent;
-  final double budget;
-  final IconData icon;
-
-  BudgetAlert({
-    required this.title,
-    required this.percentage,
-    required this.spent,
-    required this.budget,
-    required this.icon,
-  });
-}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

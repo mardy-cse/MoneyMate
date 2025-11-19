@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/chatbot_service.dart';
 import '../services/voice_service.dart';
+import '../models/chat_message.dart';
 
 class ChatbotScreen extends StatefulWidget {
   const ChatbotScreen({super.key});

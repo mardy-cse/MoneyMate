@@ -5,7 +5,7 @@ import '../controllers/expense_controller.dart';
 import 'firebase_debug_screen.dart';
 
 class CloudSyncScreen extends StatefulWidget {
-  const CloudSyncScreen({Key? key}) : super(key: key);
+  const CloudSyncScreen({super.key});
 
   @override
   State<CloudSyncScreen> createState() => _CloudSyncScreenState();

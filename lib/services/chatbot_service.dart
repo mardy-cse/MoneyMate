@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../controllers/expense_controller.dart';
 import '../models/expense.dart';
+import '../models/chat_message.dart';
 import 'gemini_service.dart';
 
 /// AI-powered Financial Assistant Chatbot
@@ -758,34 +759,4 @@ class ChatbotService {
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
-}
-
-/// Chat Message Model
-class ChatMessage {
-  final String text;
-  final bool isUser;
-  final DateTime timestamp;
-  final MessageType type;
-
-  ChatMessage({
-    required this.text,
-    required this.isUser,
-    required this.timestamp,
-    this.type = MessageType.general,
-  });
-}
-
-/// Message Types for styling
-enum MessageType {
-  greeting,
-  expense,
-  category,
-  advice,
-  tips,
-  analysis,
-  comparison,
-  help,
-  info,
-  fallback,
-  general,
 }

@@ -17,28 +17,26 @@ class CustomSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
-        style: TextStyle(
-          color: isDarkMode ? Colors.white : Colors.black,
-        ),
+        style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: TextStyle(
             color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
           ),
           prefixIcon: Icon(
-            Icons.search, 
+            Icons.search,
             color: isDarkMode ? Colors.grey.shade400 : Colors.grey,
           ),
           suffixIcon: controller.text.isNotEmpty
               ? IconButton(
                   icon: Icon(
-                    Icons.clear, 
+                    Icons.clear,
                     color: isDarkMode ? Colors.grey.shade400 : Colors.grey,
                   ),
                   onPressed: () {
@@ -73,7 +71,10 @@ class CustomSearchBar extends StatelessWidget {
               width: 1.5,
             ),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
       ),
     );
