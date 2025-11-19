@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/add_expense_screen.dart';
@@ -36,6 +37,11 @@ void main() async {
   // Initialize Firebase (with error handling)
   try {
     await Firebase.initializeApp();
+    
+    // IMPORTANT: Ensure Firebase Auth persists user sessions
+    // This prevents sign-out on app restart
+    await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+    print('✅ Firebase Auth persistence set to LOCAL');
   } catch (e) {
     print('Firebase initialization error: $e');
     // Continue without Firebase if initialization fails
