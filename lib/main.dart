@@ -37,7 +37,7 @@ void main() async {
   // Initialize Firebase (with error handling)
   try {
     await Firebase.initializeApp();
-    
+
     // IMPORTANT: Ensure Firebase Auth persists user sessions
     // This prevents sign-out on app restart
     await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
